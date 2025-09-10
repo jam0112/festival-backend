@@ -13,10 +13,12 @@
     </style>
 </head>
 <body>
-    <h1> 2025년 서북권 청소년 축제 입장 등록</h1>
+    <h1>2025년 서북권 청소년 축제 입장 등록</h1>
     <form id="registerForm">
         <input type="text" id="name" placeholder="이름" required>
-        <input type="text" id="number" placeholder="연락처" required>        
+        
+        <input type="tel" id="number" placeholder="010-****-****" maxlength="13" required>
+
         <select id="gender" required>
             <option value="">성별 선택</option>
             <option value="남성">남성</option>
@@ -37,55 +39,59 @@
     <div id="result"></div>
 
     <script>
-const form = document.getElementById('registerForm');
-const resultDiv = document.getElementById('result');
+        const form = document.getElementById('registerForm');
+        const resultDiv = document.getElementById('result');
+        const numberInput = document.getElementById('number'); // 연락처 input 가져오기
 
-// 🚨 본인의 Render 서버 주소로 반드시 변경해주세요!
-const API_URL = 'https://festival-backend-zika.onrender.com';
+        const API_URL = 'https://festival-backend-zika.onrender.com';
 
-form.addEventListener('submit', async (event) => {
-    // 1. 폼의 기본 동작(페이지 새로고침)을 막습니다.
-    event.preventDefault(); 
-
-    // 2. 폼에 입력된 값들을 가져옵니다.
-    const visitorData = {
-        name: document.getElementById('name').value,
-        number: document.getElementById('number').value, // 연락처 추가
-        gender: document.getElementById('gender').value,
-        age_group: document.getElementById('age_group').value,
-        region: document.getElementById('region').value
-    };
-
-    resultDiv.textContent = '등록 중...';
-
-    try {
-        // 3. fetch API를 사용해 서버에 POST 요청을 보냅니다.
-        const response = await fetch(`${API_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(visitorData)
+        // 2. 연락처 자동 하이픈 추가를 위한 스크립트
+        numberInput.addEventListener('input', (event) => {
+            const value = numberInput.value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
+            const length = value.length;
+            
+            let formattedNumber = '';
+            if (length < 4) {
+                formattedNumber = value;
+            } else if (length < 8) {
+                formattedNumber = `${value.substring(0, 3)}-${value.substring(3)}`;
+            } else {
+                formattedNumber = `${value.substring(0, 3)}-${value.substring(3, 7)}-${value.substring(7, 11)}`;
+            }
+            numberInput.value = formattedNumber;
         });
 
-        // 서버에서 에러 응답이 온 경우
-        if (!response.ok) {
-            throw new Error('서버 응답에 문제가 발생했습니다.');
-        }
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); 
+            // ... (이하 기존 form 제출 스크립트는 동일)
+            const visitorData = {
+                name: document.getElementById('name').value,
+                number: numberInput.value,
+                gender: document.getElementById('gender').value,
+                age_group: document.getElementById('age_group').value,
+                region: document.getElementById('region').value
+            };
 
-        // 4. 서버로부터 성공 응답을 받습니다.
-        const registeredVisitor = await response.json();
+            resultDiv.textContent = '등록 중...';
 
-        // 5. 결과 메시지를 화면에 보여줍니다.
-        resultDiv.textContent = `✅ 등록 완료! [${registeredVisitor.id}] ${registeredVisitor.name}님 환영합니다.`;
-        
-        form.reset(); // 입력 폼을 깨끗하게 비웁니다.
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(visitorData)
+                });
+                
+                if (!response.ok) throw new Error('서버 응답에 문제가 발생했습니다.');
 
-    } catch (error) {
-        // 6. 요청 중 에러가 발생한 경우 에러 메시지를 보여줍니다.
-        resultDiv.textContent = `❌ 등록 실패: ${error.message}`;
-    }
-});
+                const registeredVisitor = await response.json();
+                resultDiv.textContent = `✅ 등록 완료! [${registeredVisitor.id}] ${registeredVisitor.name}님 환영합니다.`;
+                form.reset();
+            } catch (error) {
+                resultDiv.textContent = `❌ 등록 실패: ${error.message}`;
+            }
+        });
     </script>
 </body>
 </html>
