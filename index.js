@@ -1,4 +1,6 @@
 const express = require('express');
+// 'public' 폴더에 있는 파일들을 웹페이지로 제공하겠다는 설정
+app.use(express.static('public'));
 const app = express();
 const PORT = process.env.PORT || 3000;
 

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>축제 방문객 등록</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; padding: 1rem; }
+        form { display: flex; flex-direction: column; gap: 0.8rem; }
+        input, select, button { padding: 0.8rem; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+        #result { margin-top: 1rem; padding: 1rem; background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <h1>🎉 축제 방문객 등록</h1>
+    <form id="registerForm">
+        <input type="text" id="name" placeholder="이름" required>
+        <select id="gender" required>
+            <option value="">성별 선택</option>
+            <option value="남성">남성</option>
+            <option value="여성">여성</option>
+        </select>
+        <select id="age_group" required>
+            <option value="">연령대 선택</option>
+            <option value="10대">10대</option>
+            <option value="20대">20대</option>
+            <option value="30대">30대</option>
+            <option value="40대 이상">40대 이상</option>
+        </select>
+        <input type="text" id="region" placeholder="거주 지역 (예: 강남구)" required>
+        <button type="submit">등록하기</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        // 자바스크립트 코드가 여기에 들어갑니다.
+    </script>
+</body>
+</html>
