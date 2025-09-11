@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 페이지</title>
     <style>
-        body { font-family: sans-serif; max-width: 900px; margin: 2rem auto; padding: 1rem; }
+        body { font-family: sans-serif; max-width: 1000px; margin: 2rem auto; padding: 1rem; }
         h1 { text-align: center; }
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
         th, td { border: 1px solid #ddd; padding: 0.8rem; text-align: left; }
         th { background-color: #f2f2f2; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         a { text-decoration: none; color: #007bff; }
+        .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-edit { background-color: #ffc107; }
+        .btn-delete { background-color: #dc3545; color: white; }
     </style>
 </head>
 <body>
@@ -20,20 +23,17 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
                 <th>이름</th>
                 <th>연락처</th>
                 <th>성별</th>
                 <th>연령대</th>
                 <th>지역</th>
                 <th>등록일시</th>
+                <th>관리</th>
             </tr>
         </thead>
         <tbody id="visitorList">
-            <tr>
-                <td colspan="7" style="text-align:center;">데이터를 불러오는 중...</td>
-            </tr>
-        </tbody>
+            </tbody>
     </table>
 
     <script>
@@ -41,13 +41,13 @@
         const visitorList = document.getElementById('visitorList');
 
         window.onload = async () => {
+            // ... (이전과 동일한 데이터 로딩 스크립트) ...
             try {
                 const response = await fetch(`${API_URL}/visitors`);
                 if (!response.ok) throw new Error('데이터 로딩 실패');
                 const visitors = await response.json();
-
-                visitorList.innerHTML = ''; // "로딩 중..." 메시지 지우기
-
+                
+                visitorList.innerHTML = ''; 
                 if (visitors.length === 0) {
                     visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
                     return;
@@ -56,22 +56,34 @@
                 visitors.forEach(visitor => {
                     const row = document.createElement('tr');
                     const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+                    
                     row.innerHTML = `
-                        <td>${visitor.id}</td>
                         <td>${visitor.name}</td>
                         <td>${visitor.number}</td>
                         <td>${visitor.gender}</td>
                         <td>${visitor.age_group}</td>
                         <td>${visitor.region}</td>
                         <td>${registeredDate}</td>
+                        <td class="actions">
+                            <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
+                            <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
+                        </td>
                     `;
                     visitorList.appendChild(row);
                 });
-
             } catch (error) {
                 visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
             }
         };
+        
+        // 여기에 수정(editVisitor)과 삭제(deleteVisitor) 함수가 추가될 예정입니다.
+        function editVisitor(id) {
+            alert('수정 기능은 곧 구현될 예정입니다. ID: ' + id);
+        }
+
+        function deleteVisitor(id) {
+            alert('삭제 기능은 곧 구현될 예정입니다. ID: ' + id);
+        }
     </script>
 </body>
 </html>
