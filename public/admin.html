@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>관리자 페이지</title>
+    <title>콤마 관리자 페이지</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 1200px; margin: 2rem auto; padding: 1rem; }
@@ -30,7 +30,8 @@
     </style>
 </head>
 <body>
-    <h1>📝 관리자 페이지: 등록자 명단</h1>
+    <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
+    <h1>📝 콤마 관리자 페이지: 등록자 명단</h1>
     
     <div class="charts-container">
         <div class="chart-item">
@@ -54,7 +55,6 @@
             <canvas id="weekdayChart"></canvas>
         </div>
     </div>
-    <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
     <table>
         <thead>
             <tr>
@@ -93,7 +93,7 @@
     function renderVisitorTable(visitors) {
         visitorList.innerHTML = ''; 
         if (visitors.length === 0) {
-            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
+            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 이용자이 없습니다.</td></tr>';
             return;
         }
         visitors.forEach(visitor => {
@@ -201,10 +201,10 @@
             </td>
         `;
     }
-    
+
     // 삭제 버튼 클릭 시 실행되는 함수
     async function deleteVisitor(id) {
-        if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        if (!confirm('정말로 이 이용자 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
             return;
         }
         try {
@@ -232,7 +232,7 @@
             const ageCounts = { '초등 (8-13)': 0, '중등 (14-16)': 0, '고등 (17-19)': 0, '대학 (20-24)': 0, '기타': 0 };
             const ageMap = { '8-13': '초등 (8-13)', '14-16': '중등 (14-16)', '17-19': '고등 (17-19)', '20-24': '대학 (20-24)' };
             visitors.forEach(v => { ageCounts[ageMap[v.age_group] || '기타']++; });
-            new Chart(ctx, { type: 'bar', data: { labels: ageGroups, datasets: [{ label: '방문객 수', data: ageGroups.map(g => ageCounts[g]), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
+            new Chart(ctx, { type: 'bar', data: { labels: ageGroups, datasets: [{ label: '이용자 수', data: ageGroups.map(g => ageCounts[g]), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
         }
 
         function createMonthChart(visitors) {
