@@ -23,7 +23,7 @@
         gap: 1rem;
     }
     .charts-container > div {
-        width: 45%;
+        width: 30%; /* 45%에서 30%로 수정 */
         padding: 1rem;
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -32,7 +32,7 @@
 </head>
 <body>
     <h1>📝 관리자 페이지: 등록자 명단</h1>
-     <div class="charts-container">
+<div class="charts-container">
         <div>
             <h2>성별 분포</h2>
             <canvas id="genderChart"></canvas>
@@ -41,7 +41,11 @@
             <h2>연령대별 분포</h2>
             <canvas id="ageChart"></canvas>
         </div>
-    </div>
+        <div>
+            <h2>요일별 등록 현황</h2>
+            <canvas id="dayChart"></canvas>
+        </div>
+        </div>
     <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
     <table>
         <thead>
@@ -59,7 +63,7 @@
             </tbody>
     </table>
 
-    <script>
+<script>
     const API_URL = 'https://festival-backend-zika.onrender.com';
     const visitorList = document.getElementById('visitorList');
 
@@ -70,19 +74,20 @@
             if (!response.ok) throw new Error('데이터 로딩 실패');
             const visitors = await response.json();
             
-            // 1. 방문객 명단 테이블 만들기 (이전과 동일)
+            // 1. 방문객 명단 테이블 만들기
             renderVisitorTable(visitors);
 
             // 2. 데이터 분석 및 차트 그리기
             createGenderChart(visitors);
             createAgeChart(visitors);
+            createDayChart(visitors); // <-- 요일별 차트 함수 호출 추가
 
         } catch (error) {
             visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
         }
     };
 
-    // 테이블 렌더링 함수
+    // 테이블 렌더링 함수 (이전과 동일)
     function renderVisitorTable(visitors) {
         visitorList.innerHTML = ''; 
         if (visitors.length === 0) {
@@ -108,7 +113,7 @@
         });
     }
 
-    // 성별 분포 원 그래프 생성 함수
+    // 성별 분포 원 그래프 생성 함수 (이전과 동일)
     function createGenderChart(visitors) {
         const ctx = document.getElementById('genderChart').getContext('2d');
         const genderCounts = visitors.reduce((acc, visitor) => {
@@ -128,7 +133,7 @@
         });
     }
 
-    // 연령대별 분포 막대 그래프 생성 함수
+    // 연령대별 분포 막대 그래프 생성 함수 (이전과 동일)
     function createAgeChart(visitors) {
         const ctx = document.getElementById('ageChart').getContext('2d');
         const ageGroups = ['10대', '20대', '30대', '40대', '50대 이상'];
@@ -146,11 +151,39 @@
                     backgroundColor: '#4BC0C0',
                 }]
             },
-            options: {
-                scales: { y: { beginAtZero: true } }
-            }
+            options: { scales: { y: { beginAtZero: true } } }
         });
     }
+
+    // ▼▼▼ 이 함수 전체 추가 ▼▼▼
+    // 요일별 등록 현황 막대 그래프 생성 함수
+    function createDayChart(visitors) {
+        const ctx = document.getElementById('dayChart').getContext('2d');
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayCounts = Array(7).fill(0); // [0, 0, 0, 0, 0, 0, 0] 배열 생성
+
+        visitors.forEach(visitor => {
+            const dayIndex = new Date(visitor.registeredAt).getDay(); // 0=일요일, 1=월요일...
+            dayCounts[dayIndex]++;
+        });
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: days,
+                datasets: [{
+                    label: '등록자 수',
+                    data: dayCounts,
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                        '#9966FF', '#FF9F40', '#C9CBCF'
+                    ],
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+    // ▲▲▲ 여기까지 추가 ▲▲▲
 </script>
 </body>
 </html>
