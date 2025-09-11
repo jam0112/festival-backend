@@ -6,184 +6,146 @@
     <title>관리자 페이지</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; max-width: 1000px; margin: 2rem auto; padding: 1rem; }
-        h1 { text-align: center; }
+        body { font-family: sans-serif; max-width: 1200px; margin: 2rem auto; padding: 1rem; }
+        h1, h2 { text-align: center; }
+        a { text-decoration: none; color: #007bff; }
         table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
         th, td { border: 1px solid #ddd; padding: 0.8rem; text-align: left; }
         th { background-color: #f2f2f2; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        a { text-decoration: none; color: #007bff; }
         .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
         .btn-edit { background-color: #ffc107; }
         .btn-delete { background-color: #dc3545; color: white; }
-          .charts-container {
-        display: flex;
-        justify-content: space-around;
-        margin-bottom: 2rem;
-        gap: 1rem;
-    }
-    .charts-container > div {
-        width: 30%; /* 45%에서 30%로 수정 */
-        padding: 1rem;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-    }
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .chart-item {
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
     <h1>📝 관리자 페이지: 등록자 명단</h1>
-<div class="charts-container">
-        <div>
+    
+    <div class="charts-container">
+        <div class="chart-item">
             <h2>성별 분포</h2>
             <canvas id="genderChart"></canvas>
         </div>
-        <div>
-            <h2>연령대별 분포</h2>
+        <div class="chart-item">
+            <h2>연령대별 분포 (세분화)</h2>
             <canvas id="ageChart"></canvas>
         </div>
-        <div>
+        <div class="chart-item">
+            <h2>월별 등록 현황</h2>
+            <canvas id="monthChart"></canvas>
+        </div>
+        <div class="chart-item">
             <h2>요일별 등록 현황</h2>
             <canvas id="dayChart"></canvas>
         </div>
+        <div class="chart-item">
+            <h2>주중/주말 등록 현황</h2>
+            <canvas id="weekdayChart"></canvas>
         </div>
+    </div>
     <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
     <table>
         <thead>
             <tr>
-                <th>이름</th>
-                <th>연락처</th>
-                <th>성별</th>
-                <th>연령대</th>
-                <th>지역</th>
-                <th>등록일시</th>
-                <th>관리</th>
+                <th>이름</th><th>연락처</th><th>성별</th><th>연령대</th>
+                <th>지역</th><th>등록일시</th><th>관리</th>
             </tr>
         </thead>
         <tbody id="visitorList">
             </tbody>
     </table>
 
-<script>
-    const API_URL = 'https://festival-backend-zika.onrender.com';
-    const visitorList = document.getElementById('visitorList');
+    <script>
+        const API_URL = 'https://festival-backend-zika.onrender.com';
+        const visitorList = document.getElementById('visitorList');
 
-    // 페이지가 로드되면 실행
-    window.onload = async () => {
-        try {
-            const response = await fetch(`${API_URL}/visitors`);
-            if (!response.ok) throw new Error('데이터 로딩 실패');
-            const visitors = await response.json();
-            
-            // 1. 방문객 명단 테이블 만들기
-            renderVisitorTable(visitors);
+        window.onload = async () => {
+            try {
+                const response = await fetch(`${API_URL}/visitors`);
+                if (!response.ok) throw new Error('데이터 로딩 실패');
+                const visitors = await response.json();
+                
+                renderVisitorTable(visitors);
 
-            // 2. 데이터 분석 및 차트 그리기
-            createGenderChart(visitors);
-            createAgeChart(visitors);
-            createDayChart(visitors); // <-- 요일별 차트 함수 호출 추가
+                createGenderChart(visitors);
+                createDetailedAgeChart(visitors);
+                createMonthChart(visitors);
+                createDayChart(visitors);
+                createWeekdayChart(visitors);
 
-        } catch (error) {
-            visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
-        }
-    };
-
-    // 테이블 렌더링 함수 (이전과 동일)
-    function renderVisitorTable(visitors) {
-        visitorList.innerHTML = ''; 
-        if (visitors.length === 0) {
-            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
-            return;
-        }
-        visitors.forEach(visitor => {
-            const row = document.createElement('tr');
-            const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
-            row.innerHTML = `
-                <td>${visitor.name}</td>
-                <td>${visitor.number}</td>
-                <td>${visitor.gender}</td>
-                <td>${visitor.age_group}</td>
-                <td>${visitor.region}</td>
-                <td>${registeredDate}</td>
-                <td class="actions">
-                    <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
-                    <button class="btn-delete" onclick="alert('삭제 기능 구현 예정')">삭제</button>
-                </td>
-            `;
-            visitorList.appendChild(row);
-        });
-    }
-
-    // 성별 분포 원 그래프 생성 함수 (이전과 동일)
-    function createGenderChart(visitors) {
-        const ctx = document.getElementById('genderChart').getContext('2d');
-        const genderCounts = visitors.reduce((acc, visitor) => {
-            acc[visitor.gender] = (acc[visitor.gender] || 0) + 1;
-            return acc;
-        }, {});
-
-        new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: Object.keys(genderCounts),
-                datasets: [{
-                    data: Object.values(genderCounts),
-                    backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'],
-                }]
+            } catch (error) {
+                visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
             }
-        });
-    }
+        };
 
-    // 연령대별 분포 막대 그래프 생성 함수 (이전과 동일)
-    function createAgeChart(visitors) {
-        const ctx = document.getElementById('ageChart').getContext('2d');
-        const ageGroups = ['10대', '20대', '30대', '40대', '50대 이상'];
-        const ageCounts = ageGroups.map(group => 
-            visitors.filter(v => v.age_group === group).length
-        );
+        function renderVisitorTable(visitors) {
+            visitorList.innerHTML = ''; 
+            if (visitors.length === 0) {
+                visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
+                return;
+            }
+            visitors.forEach(visitor => {
+                const row = document.createElement('tr');
+                const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+                row.innerHTML = `
+                    <td>${visitor.name}</td><td>${visitor.number}</td><td>${visitor.gender}</td>
+                    <td>${visitor.age_group}</td><td>${visitor.region}</td><td>${registeredDate}</td>
+                    <td class="actions">
+                        <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
+                        <button class="btn-delete" onclick="alert('삭제 기능 구현 예정')">삭제</button>
+                    </td>
+                `;
+                visitorList.appendChild(row);
+            });
+        }
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: ageGroups,
-                datasets: [{
-                    label: '방문객 수',
-                    data: ageCounts,
-                    backgroundColor: '#4BC0C0',
-                }]
-            },
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-    }
+        function createGenderChart(visitors) {
+            const ctx = document.getElementById('genderChart').getContext('2d');
+            const genderCounts = visitors.reduce((acc, v) => { acc[v.gender] = (acc[v.gender] || 0) + 1; return acc; }, {});
+            new Chart(ctx, { type: 'pie', data: { labels: Object.keys(genderCounts), datasets: [{ data: Object.values(genderCounts), backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'] }] } });
+        }
 
-    // ▼▼▼ 이 함수 전체 추가 ▼▼▼
-    // 요일별 등록 현황 막대 그래프 생성 함수
-    function createDayChart(visitors) {
-        const ctx = document.getElementById('dayChart').getContext('2d');
-        const days = ['일', '월', '화', '수', '목', '금', '토'];
-        const dayCounts = Array(7).fill(0); // [0, 0, 0, 0, 0, 0, 0] 배열 생성
+        function createDetailedAgeChart(visitors) {
+            const ctx = document.getElementById('ageChart').getContext('2d');
+            const ageGroups = ['초등 (8-13)', '중등 (14-16)', '고등 (17-19)', '대학 (20-24)', '기타'];
+            const ageCounts = { '초등 (8-13)': 0, '중등 (14-16)': 0, '고등 (17-19)': 0, '대학 (20-24)': 0, '기타': 0 };
+            const ageMap = { '8-13': '초등 (8-13)', '14-16': '중등 (14-16)', '17-19': '고등 (17-19)', '20-24': '대학 (20-24)' };
+            visitors.forEach(v => { ageCounts[ageMap[v.age_group] || '기타']++; });
+            new Chart(ctx, { type: 'bar', data: { labels: ageGroups, datasets: [{ label: '방문객 수', data: ageGroups.map(g => ageCounts[g]), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
+        }
 
-        visitors.forEach(visitor => {
-            const dayIndex = new Date(visitor.registeredAt).getDay(); // 0=일요일, 1=월요일...
-            dayCounts[dayIndex]++;
-        });
+        function createMonthChart(visitors) {
+            const ctx = document.getElementById('monthChart').getContext('2d');
+            const monthCounts = Array(12).fill(0);
+            visitors.forEach(v => { monthCounts[new Date(v.registeredAt).getMonth()]++; });
+            new Chart(ctx, { type: 'line', data: { labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], datasets: [{ label: '등록자 수', data: monthCounts, borderColor: '#FF9F40', tension: 0.1 }] }, options: { scales: { y: { beginAtZero: true } } } });
+        }
+        
+        function createDayChart(visitors) {
+            const ctx = document.getElementById('dayChart').getContext('2d');
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayCounts = Array(7).fill(0);
+            visitors.forEach(v => { dayCounts[new Date(v.registeredAt).getDay()]++; });
+            new Chart(ctx, { type: 'bar', data: { labels: days, datasets: [{ label: '등록자 수', data: dayCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
+        }
 
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: days,
-                datasets: [{
-                    label: '등록자 수',
-                    data: dayCounts,
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
-                        '#9966FF', '#FF9F40', '#C9CBCF'
-                    ],
-                }]
-            },
-            options: { scales: { y: { beginAtZero: true } } }
-        });
-    }
-    // ▲▲▲ 여기까지 추가 ▲▲▲
-</script>
+        function createWeekdayChart(visitors) {
+            const ctx = document.getElementById('weekdayChart').getContext('2d');
+            const dayCounts = { '주중 (월-금)': 0, '주말 (토-일)': 0 };
+            visitors.forEach(v => { const dayIndex = new Date(v.registeredAt).getDay(); if (dayIndex === 0 || dayIndex === 6) { dayCounts['주말 (토-일)']++; } else { dayCounts['주중 (월-금)']++; } });
+            new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(dayCounts), datasets: [{ data: Object.values(dayCounts), backgroundColor: ['#4BC0C0', '#FF6384'] }] } });
+        }
+    </script>
 </body>
 </html>
