@@ -33,7 +33,7 @@ const Visitor = mongoose.model('Visitor', new mongoose.Schema({
 // JSON 파싱 미들웨어
 app.use(express.json());
 
-// --- 보안 및 인증 로직 (정적 파일보다 먼저 와야 함) ---
+// --- 보안 및 인증 로직 ---
 
 const checkAuth = (req, res, next) => {
     if (req.session.isLoggedIn) {
@@ -44,7 +44,7 @@ const checkAuth = (req, res, next) => {
 };
 
 app.post('/login', (req, res) => {
-    const ADMIN_USER = { username: 'admin', password: 'naroo1318'
+    const ADMIN_USER = { username: 'admin', password: 'password123' }; // <-- 여기에 세미콜론 추가됨
     const { username, password } = req.body;
     if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
         req.session.isLoggedIn = true;
@@ -61,17 +61,16 @@ app.get('/logout', (req, res) => {
     });
 });
 
-// ✨✨✨ 핵심 변경사항 ✨✨✨
-// 특별 규칙인 '/admin.html' 보안 검사를 먼저 배치합니다.
+// '/admin.html' 보안 검사
 app.get('/admin.html', checkAuth, (req, res) => {
     res.sendFile(__dirname + '/public/admin.html');
 });
 
-// 그 다음에 일반 규칙인 'public' 폴더 서비스를 배치합니다.
+// 'public' 폴더 서비스
 app.use(express.static('public'));
 
 
-// --- 기존 방문객 API ---
+// --- 방문객 API ---
 
 app.get('/visitors', checkAuth, async (req, res) => {
     try {
@@ -91,7 +90,6 @@ app.post('/register', async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-
 
 app.listen(PORT, () => {
   console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
