@@ -1,98 +1,109 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2025년 서북권 청소년 축제 [방명록 등록]</title>
-    <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; padding: 1rem; }
-        form { display: flex; flex-direction: column; gap: 0.8rem; }
-        input, select, button { padding: 0.8rem; font-size: 1rem; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-        #result { margin-top: 1rem; padding: 1rem; background-color: #f0f0f0; }
-    </style>
-</head>
-<body>
-    <h1>2025년 서북권 청소년 축제 입장 등록</h1>
-    <form id="registerForm">
-        <input type="text" id="name" placeholder="이름" required>
-        
-        <input type="tel" id="number" placeholder="010-****-****" maxlength="13" required>
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const session = require('express-session');
 
-        <select id="gender" required>
-            <option value="">성별 선택</option>
-            <option value="남성">남성</option>
-            <option value="여성">여성</option>
-        </select>
-        <select id="age_group" required>
-            <option value="">연령대 선택</option>
-            <option value="유아">7세이하</option>            
-            <option value="초등">8~13(초등)</option>
-            <option value="중등">14~16(중등)</option>    
-            <option value="고등">17~19(고등))</option>
-            <option value="대학">20~24(대학))</option>
-            <option value="성인">25세 이상</option>
-        </select>
-        <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
-        <button type="submit">등록하기</button>
-    </form>
-    <a href="/admin.html" style="text-align: right; display: block; margin-top: 1rem;">관리자 페이지로 이동 &rarr;</a>
-    <div id="result"></div>
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-    <script>
-        const form = document.getElementById('registerForm');
-        const resultDiv = document.getElementById('result');
-        const numberInput = document.getElementById('number'); // 연락처 input 가져오기
+// 세션 미들웨어 설정
+app.use(session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: 'auto', // Render 같은 프록시 환경에서 https 자동 감지
+        httpOnly: true, // JavaScript에서 쿠키 접근 방지
+        maxAge: 1000 * 60 * 60 // 쿠키 유효 기간 (1시간)
+    }
+}));
 
-        const API_URL = 'https://festival-backend-zika.onrender.com';
+// 데이터베이스 연결
+mongoose.connect(process.env.DATABASE_URL)
+  .then(() => console.log('✅ 데이터베이스에 성공적으로 연결되었습니다.'))
+  .catch(e => console.error('❌ 데이터베이스 연결에 실패했습니다:', e));
 
-        // 2. 연락처 자동 하이픈 추가를 위한 스크립트
-        numberInput.addEventListener('input', (event) => {
-            const value = numberInput.value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
-            const length = value.length;
-            
-            let formattedNumber = '';
-            if (length < 4) {
-                formattedNumber = value;
-            } else if (length < 8) {
-                formattedNumber = `${value.substring(0, 3)}-${value.substring(3)}`;
-            } else {
-                formattedNumber = `${value.substring(0, 3)}-${value.substring(3, 7)}-${value.substring(7, 11)}`;
-            }
-            numberInput.value = formattedNumber;
-        });
+// ... (모델 정의는 이전과 동일) ...
+const Visitor = mongoose.model('Visitor', new mongoose.Schema({
+    name: String, number: String, gender: String,
+    age_group: String, region: String,
+    registeredAt: { type: Date, default: Date.now }
+}));
 
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault(); 
-            // ... (이하 기존 form 제출 스크립트는 동일)
-            const visitorData = {
-                name: document.getElementById('name').value,
-                number: numberInput.value,
-                gender: document.getElementById('gender').value,
-                age_group: document.getElementById('age_group').value,
-                region: document.getElementById('region').value
-            };
+app.use(express.static('public'));
+app.use(express.json());
 
-            resultDiv.textContent = '등록 중...';
+// --- 보안 및 인증 로직 ---
 
-            try {
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(visitorData)
-                });
-                
-                if (!response.ok) throw new Error('서버 응답에 문제가 발생했습니다.');
+// 1. 관리자 정보 (나중에는 DB에 저장하는 것이 더 안전합니다)
+const ADMIN_USER = {
+    username: 'admin',
+    password: 'password123'
+};
 
-                const registeredVisitor = await response.json();
-                resultDiv.textContent = `✅ 등록 완료! [${registeredVisitor.id}] ${registeredVisitor.name}님 환영합니다.`;
-                form.reset();
-            } catch (error) {
-                resultDiv.textContent = `❌ 등록 실패: ${error.message}`;
-            }
-        });
-    </script>
-</body>
-</html>
+// 2. 로그인 상태 확인 미들웨어
+const checkAuth = (req, res, next) => {
+    if (req.session.isLoggedIn) {
+        // 로그인 상태이면 다음 단계로 진행
+        next();
+    } else {
+        // 로그인 상태가 아니면 로그인 페이지로 리다이렉트
+        res.redirect('/login.html');
+    }
+};
+
+// 3. API: 로그인 처리
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
+        req.session.isLoggedIn = true; // 세션에 로그인 상태 기록
+        res.status(200).json({ message: '로그인 성공' });
+    } else {
+        res.status(401).json({ message: '사용자 이름 또는 비밀번호가 잘못되었습니다.' });
+    }
+});
+
+// 4. API: 로그아웃 처리
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send('로그아웃 실패');
+        }
+        res.redirect('/login.html');
+    });
+});
+
+// 5. 관리자 페이지 접근 제어
+// '/admin.html' 경로에 접근하기 전에 'checkAuth' 미들웨어가 먼저 실행됩니다.
+app.get('/admin.html', checkAuth, (req, res) => {
+    // checkAuth를 통과해야만 이 코드가 실행되어 admin.html 파일을 보여줍니다.
+    res.sendFile(__dirname + '/public/admin.html');
+});
+
+
+// --- 기존 방문객 API ---
+
+app.get('/visitors', checkAuth, async (req, res) => { // 방문객 목록 조회도 로그인해야만 가능
+    try {
+        const visitors = await Visitor.find().sort({ registeredAt: -1 });
+        res.json(visitors);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+app.post('/register', async (req, res) => {
+    // ... (등록 API는 로그인 없이 사용 가능하므로 그대로 둡니다) ...
+    try {
+        const newVisitor = new Visitor(req.body);
+        const savedVisitor = await newVisitor.save();
+        res.status(201).json(savedVisitor);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
+
+
+app.listen(PORT, () => {
+  console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
+});

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f4; }
+        .login-container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 300px; }
+        h1 { text-align: center; margin-bottom: 1.5rem; }
+        form { display: flex; flex-direction: column; gap: 1rem; }
+        input { padding: 0.8rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 0.8rem; font-size: 1rem; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        #message { margin-top: 1rem; color: red; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>관리자 로그인</h1>
+        <form id="loginForm">
+            <input type="text" id="username" placeholder="사용자 이름" required>
+            <input type="password" id="password" placeholder="비밀번호" required>
+            <button type="submit">로그인</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const messageDiv = document.getElementById('message');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 로그인이 성공하면 관리자 페이지로 이동
+                    window.location.href = '/admin.html';
+                } else {
+                    messageDiv.textContent = result.message || '로그인 실패';
+                }
+            } catch (error) {
+                messageDiv.textContent = '오류가 발생했습니다.';
+            }
+        });
+    </script>
+</body>
+</html>
