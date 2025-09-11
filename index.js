@@ -33,7 +33,7 @@ const User = mongoose.model('User', userSchema);
 // 2. Visitor 모델 (기존과 동일)
 const Visitor = mongoose.model('Visitor', new mongoose.Schema({
     name: String, number: String, gender: String,
-    age_group: String, region: String,
+    age: Number, region: String, // <-- 이렇게 변경
     registeredAt: { type: Date, default: Date.now }
 }));
 
@@ -86,7 +86,10 @@ app.use(express.static('public'));
 
 // --- 이용자 API (CRUD) ---
 app.get('/visitors', checkAuth, async (req, res) => { /* 이전과 동일 */ });
-app.post('/register', async (req, res) => { /* 이전과 동일 */ });
+app.post('/register', async (req, res) => {
+    try {
+        const { name, number, gender, age, region } = req.body; // <-- 이렇게 변경
+        const newVisitor = new Visitor({ name, number, gender, age, region }); // <-- 이렇게 변경
 app.patch('/visitors/:id', checkAuth, async (req, res) => { /* 이전과 동일 */ });
 app.delete('/visitors/:id', checkAuth, async (req, res) => { /* 이전과 동일 */ });
 

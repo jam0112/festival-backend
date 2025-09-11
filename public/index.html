@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2025년 서북권 청소년 축제 [방명록 등록]</title>
+    <title>청소년자유공간 콤마 [방명록 등록]</title>
     <style>
         body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; padding: 1rem; }
         form { display: flex; flex-direction: column; gap: 0.8rem; }
@@ -13,7 +13,7 @@
     </style>
 </head>
 <body>
-    <h1>2025년 서북권 청소년 축제 입장 등록</h1>
+    <h1>콤마 입장 등록</h1>
     <form id="registerForm">
         <input type="text" id="name" placeholder="이름" required>
         
@@ -24,15 +24,7 @@
             <option value="남성">남성</option>
             <option value="여성">여성</option>
         </select>
-        <select id="age_group" required>
-            <option value="">연령대 선택</option>
-            <option value="유아">7세이하</option>            
-            <option value="초등">8~13(초등)</option>
-            <option value="중등">14~16(중등)</option>    
-            <option value="고등">17~19(고등))</option>
-            <option value="대학">20~24(대학))</option>
-            <option value="성인">25세 이상</option>
-        </select>
+        <input type="number" id="age" placeholder="나이를 숫자로 입력하세요" required>
         <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
         <button type="submit">등록하기</button>
     </form>
