@@ -66,30 +66,30 @@
             </tbody>
     </table>
 
-    <script>
-        const API_URL = 'https://festival-backend-zika.onrender.com';
-        const visitorList = document.getElementById('visitorList');
+<script>
+    const API_URL = 'https://festival-backend-zika.onrender.com';
+    const visitorList = document.getElementById('visitorList');
 
-        window.onload = async () => {
-            try {
-                const response = await fetch(`${API_URL}/visitors`);
-                if (!response.ok) throw new Error('데이터 로딩 실패');
-                const visitors = await response.json();
-                
-                renderVisitorTable(visitors);
+    // 페이지가 로드되면 실행
+    window.onload = async () => {
+        try {
+            const response = await fetch(`${API_URL}/visitors`);
+            if (!response.ok) throw new Error('데이터 로딩 실패');
+            const visitors = await response.json();
+            
+            renderVisitorTable(visitors);
+            createGenderChart(visitors);
+            createDetailedAgeChart(visitors);
+            createMonthChart(visitors);
+            createDayChart(visitors);
+            createWeekdayChart(visitors);
 
-                createGenderChart(visitors);
-                createDetailedAgeChart(visitors);
-                createMonthChart(visitors);
-                createDayChart(visitors);
-                createWeekdayChart(visitors);
+        } catch (error) {
+            visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
+        }
+    };
 
-            } catch (error) {
-                visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
-            }
-        };
-
-// 테이블 렌더링 함수
+    // 테이블 렌더링 함수
     function renderVisitorTable(visitors) {
         visitorList.innerHTML = ''; 
         if (visitors.length === 0) {
@@ -98,19 +98,13 @@
         }
         visitors.forEach(visitor => {
             const row = document.createElement('tr');
-            // 각 행에 고유 ID를 부여합니다 (나중에 DOM에서 행을 직접 지우기 위해).
             row.dataset.id = visitor._id; 
             const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
-
             row.innerHTML = `
-                <td>${visitor.name}</td>
-                <td>${visitor.number}</td>
-                <td>${visitor.gender}</td>
-                <td>${visitor.age_group}</td>
-                <td>${visitor.region}</td>
-                <td>${registeredDate}</td>
+                <td>${visitor.name}</td><td>${visitor.number}</td><td>${visitor.gender}</td>
+                <td>${visitor.age_group}</td><td>${visitor.region}</td><td>${registeredDate}</td>
                 <td class="actions">
-                    <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
+                    <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
                     <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
                 </td>
             `;
@@ -118,23 +112,58 @@
         });
     }
 
-    // ▼▼▼ 이 함수 전체를 새로 추가하거나 기존 함수를 교체해주세요 ▼▼▼
-    // 방문객 삭제 함수
+    // 수정 버튼 클릭 시 실행되는 함수
+    function editVisitor(id) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const cells = row.querySelectorAll('td');
+        const name = cells[0].textContent;
+        const number = cells[1].textContent;
+        const region = cells[4].textContent;
+
+        row.innerHTML = `
+            <td><input type="text" value="${name}" style="width: 90%;"></td>
+            <td><input type="text" value="${number}" style="width: 90%;"></td>
+            <td>
+                <select style="width: 95%;">
+                    <option value="남성" ${cells[2].textContent === '남성' ? 'selected' : ''}>남성</option>
+                    <option value="여성" ${cells[2].textContent === '여성' ? 'selected' : ''}>여성</option>
+                </select>
+            </td>
+            <td>
+                <select style="width: 95%;">
+                    <option value="8-13" ${cells[3].textContent === '8-13' ? 'selected' : ''}>8-13</option>
+                    <option value="14-16" ${cells[3].textContent === '14-16' ? 'selected' : ''}>14-16</option>
+                    <option value="17-19" ${cells[3].textContent === '17-19' ? 'selected' : ''}>17-19</option>
+                    <option value="20-24" ${cells[3].textContent === '20-24' ? 'selected' : ''}>20-24</option>
+                    <option value="10대" ${cells[3].textContent === '10대' ? 'selected' : ''}>10대</option>
+                    <option value="20대" ${cells[3].textContent === '20대' ? 'selected' : ''}>20대</option>
+                    <option value="30대" ${cells[3].textContent === '30대' ? 'selected' : ''}>30대</option>
+                    <option value="40대" ${cells[3].textContent === '40대' ? 'selected' : ''}>40대</option>
+                    <option value="50대 이상" ${cells[3].textContent === '50대 이상' ? 'selected' : ''}>50대 이상</option>
+                </select>
+            </td>
+            <td><input type="text" value="${region}" style="width: 90%;"></td>
+            <td>${cells[5].textContent}</td> 
+            <td class="actions">
+                <button class="btn-save" onclick="saveVisitor('${id}')">저장</button>
+            </td>
+        `;
+    }
+
+    // 저장 버튼 클릭 시 실행되는 함수
+    function saveVisitor(id) {
+        alert('이제 서버에 저장하는 기능을 구현할 차례입니다!');
+    }
+
+    // 삭제 버튼 클릭 시 실행되는 함수
     async function deleteVisitor(id) {
-        // 사용자에게 정말 삭제할 것인지 최종 확인을 받습니다.
         if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-            return; // 사용자가 '취소'를 누르면 함수를 종료합니다.
+            return;
         }
-
         try {
-            const response = await fetch(`${API_URL}/visitors/${id}`, {
-                method: 'DELETE',
-            });
-
+            const response = await fetch(`${API_URL}/visitors/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 alert('성공적으로 삭제되었습니다.');
-                // 서버에서 성공적으로 삭제되면, 화면에서도 해당 행을 바로 지웁니다.
-                // 이렇게 하면 페이지를 새로고침할 필요가 없어 사용자 경험이 더 좋습니다.
                 document.querySelector(`tr[data-id="${id}"]`).remove();
             } else {
                 const errorResult = await response.json();
