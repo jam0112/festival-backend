@@ -44,7 +44,7 @@ const checkAuth = (req, res, next) => {
 };
 
 app.post('/login', (req, res) => {
-    const ADMIN_USER = { username: 'admin', password: 'password123' };
+    const ADMIN_USER = { username: 'admin', password: 'naroo1318'
     const { username, password } = req.body;
     if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
         req.session.isLoggedIn = true;

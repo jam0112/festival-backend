@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 페이지</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 1000px; margin: 2rem auto; padding: 1rem; }
         h1 { text-align: center; }
@@ -15,10 +16,32 @@
         .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
         .btn-edit { background-color: #ffc107; }
         .btn-delete { background-color: #dc3545; color: white; }
+          .charts-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+    .charts-container > div {
+        width: 45%;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
     </style>
 </head>
 <body>
     <h1>📝 관리자 페이지: 등록자 명단</h1>
+     <div class="charts-container">
+        <div>
+            <h2>성별 분포</h2>
+            <canvas id="genderChart"></canvas>
+        </div>
+        <div>
+            <h2>연령대별 분포</h2>
+            <canvas id="ageChart"></canvas>
+        </div>
+    </div>
     <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
     <table>
         <thead>
@@ -37,53 +60,97 @@
     </table>
 
     <script>
-        const API_URL = 'https://festival-backend-zika.onrender.com';
-        const visitorList = document.getElementById('visitorList');
+    const API_URL = 'https://festival-backend-zika.onrender.com';
+    const visitorList = document.getElementById('visitorList');
 
-        window.onload = async () => {
-            // ... (이전과 동일한 데이터 로딩 스크립트) ...
-            try {
-                const response = await fetch(`${API_URL}/visitors`);
-                if (!response.ok) throw new Error('데이터 로딩 실패');
-                const visitors = await response.json();
-                
-                visitorList.innerHTML = ''; 
-                if (visitors.length === 0) {
-                    visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
-                    return;
-                }
+    // 페이지가 로드되면 실행
+    window.onload = async () => {
+        try {
+            const response = await fetch(`${API_URL}/visitors`);
+            if (!response.ok) throw new Error('데이터 로딩 실패');
+            const visitors = await response.json();
+            
+            // 1. 방문객 명단 테이블 만들기 (이전과 동일)
+            renderVisitorTable(visitors);
 
-                visitors.forEach(visitor => {
-                    const row = document.createElement('tr');
-                    const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
-                    
-                    row.innerHTML = `
-                        <td>${visitor.name}</td>
-                        <td>${visitor.number}</td>
-                        <td>${visitor.gender}</td>
-                        <td>${visitor.age_group}</td>
-                        <td>${visitor.region}</td>
-                        <td>${registeredDate}</td>
-                        <td class="actions">
-                            <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
-                            <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
-                        </td>
-                    `;
-                    visitorList.appendChild(row);
-                });
-            } catch (error) {
-                visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
+            // 2. 데이터 분석 및 차트 그리기
+            createGenderChart(visitors);
+            createAgeChart(visitors);
+
+        } catch (error) {
+            visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
+        }
+    };
+
+    // 테이블 렌더링 함수
+    function renderVisitorTable(visitors) {
+        visitorList.innerHTML = ''; 
+        if (visitors.length === 0) {
+            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
+            return;
+        }
+        visitors.forEach(visitor => {
+            const row = document.createElement('tr');
+            const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+            row.innerHTML = `
+                <td>${visitor.name}</td>
+                <td>${visitor.number}</td>
+                <td>${visitor.gender}</td>
+                <td>${visitor.age_group}</td>
+                <td>${visitor.region}</td>
+                <td>${registeredDate}</td>
+                <td class="actions">
+                    <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
+                    <button class="btn-delete" onclick="alert('삭제 기능 구현 예정')">삭제</button>
+                </td>
+            `;
+            visitorList.appendChild(row);
+        });
+    }
+
+    // 성별 분포 원 그래프 생성 함수
+    function createGenderChart(visitors) {
+        const ctx = document.getElementById('genderChart').getContext('2d');
+        const genderCounts = visitors.reduce((acc, visitor) => {
+            acc[visitor.gender] = (acc[visitor.gender] || 0) + 1;
+            return acc;
+        }, {});
+
+        new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(genderCounts),
+                datasets: [{
+                    data: Object.values(genderCounts),
+                    backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'],
+                }]
             }
-        };
-        
-        // 여기에 수정(editVisitor)과 삭제(deleteVisitor) 함수가 추가될 예정입니다.
-        function editVisitor(id) {
-            alert('수정 기능은 곧 구현될 예정입니다. ID: ' + id);
-        }
+        });
+    }
 
-        function deleteVisitor(id) {
-            alert('삭제 기능은 곧 구현될 예정입니다. ID: ' + id);
-        }
-    </script>
+    // 연령대별 분포 막대 그래프 생성 함수
+    function createAgeChart(visitors) {
+        const ctx = document.getElementById('ageChart').getContext('2d');
+        const ageGroups = ['10대', '20대', '30대', '40대', '50대 이상'];
+        const ageCounts = ageGroups.map(group => 
+            visitors.filter(v => v.age_group === group).length
+        );
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ageGroups,
+                datasets: [{
+                    label: '방문객 수',
+                    data: ageCounts,
+                    backgroundColor: '#4BC0C0',
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+</script>
 </body>
 </html>
