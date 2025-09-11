@@ -97,7 +97,25 @@ app.listen(PORT, () => {
 // --- 기존 방문객 API ---
 
 // ... app.post('/register', ...) 코드 아래에 추가 ...
+// API: 특정 방문객 정보 수정
+app.patch('/visitors/:id', checkAuth, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updatedData = req.body;
 
+        const updatedVisitor = await Visitor.findByIdAndUpdate(id, updatedData, { new: true });
+
+        if (!updatedVisitor) {
+            return res.status(404).json({ message: '해당 ID의 방문객을 찾을 수 없습니다.' });
+        }
+
+        console.log('방문객 정보 수정 성공:', updatedVisitor);
+        res.status(200).json(updatedVisitor); // 수정된 전체 데이터를 다시 보내줍니다.
+
+    } catch (error) {
+        res.status(500).json({ message: '서버 오류로 인해 수정에 실패했습니다.' });
+    }
+});
 // API: 특정 방문객 삭제
 app.delete('/visitors/:id', checkAuth, async (req, res) => {
     try {

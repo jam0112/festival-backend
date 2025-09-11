@@ -150,11 +150,58 @@
         `;
     }
 
-    // 저장 버튼 클릭 시 실행되는 함수
-    function saveVisitor(id) {
-        alert('이제 서버에 저장하는 기능을 구현할 차례입니다!');
+       // 저장 버튼 클릭 시 실행되는 함수
+    async function saveVisitor(id) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const inputs = row.querySelectorAll('input, select');
+
+        const updatedData = {
+            name: inputs[0].value,
+            number: inputs[1].value,
+            gender: inputs[2].value,
+            age_group: inputs[3].value,
+            region: inputs[4].value
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                const savedVisitor = await response.json();
+                alert('성공적으로 수정되었습니다.');
+                // 수정이 성공하면, 입력 칸을 다시 일반 텍스트로 되돌립니다.
+                revertRowToText(id, savedVisitor);
+            } else {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '수정에 실패했습니다.');
+            }
+        } catch (error) {
+            alert('오류: ' + error.message);
+        }
     }
 
+     function revertRowToText(id, visitor) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+
+        row.innerHTML = `
+            <td>${visitor.name}</td>
+            <td>${visitor.number}</td>
+            <td>${visitor.gender}</td>
+            <td>${visitor.age_group}</td>
+            <td>${visitor.region}</td>
+            <td>${registeredDate}</td>
+            <td class="actions">
+                <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
+                <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
+            </td>
+        `;
+    }
+    
     // 삭제 버튼 클릭 시 실행되는 함수
     async function deleteVisitor(id) {
         if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
