@@ -11,7 +11,7 @@
         th, td { border: 1px solid #ddd; padding: 0.8rem; text-align: left; }
         th { background-color: #f2f2f2; }
         tr:nth-child(even) { background-color: #f9f9f9; }
-        #loading { text-align: center; font-size: 1.2rem; }
+        a { text-decoration: none; color: #007bff; }
     </style>
 </head>
 <body>
@@ -31,7 +31,7 @@
         </thead>
         <tbody id="visitorList">
             <tr>
-                <td colspan="7" id="loading">데이터를 불러오는 중...</td>
+                <td colspan="7" style="text-align:center;">데이터를 불러오는 중...</td>
             </tr>
         </tbody>
     </table>
@@ -39,35 +39,23 @@
     <script>
         const API_URL = 'https://festival-backend-zika.onrender.com';
         const visitorList = document.getElementById('visitorList');
-        const loadingStatus = document.getElementById('loading');
 
-        // 페이지가 로드되면 자동으로 이 함수를 실행합니다.
         window.onload = async () => {
             try {
-                // 1. 서버의 /visitors 주소로 데이터를 요청합니다.
                 const response = await fetch(`${API_URL}/visitors`);
-                
-                if (!response.ok) {
-                    throw new Error('데이터를 불러오는데 실패했습니다.');
-                }
-                
+                if (!response.ok) throw new Error('데이터 로딩 실패');
                 const visitors = await response.json();
-                
-                // "로딩 중..." 메시지를 지웁니다.
-                visitorList.innerHTML = ''; 
+
+                visitorList.innerHTML = ''; // "로딩 중..." 메시지 지우기
 
                 if (visitors.length === 0) {
-                     loadingStatus.textContent = '아직 등록된 방문객이 없습니다.';
-                     visitorList.appendChild(loadingStatus);
+                    visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
+                    return;
                 }
 
-                // 2. 받은 데이터(배열)를 하나씩 돌면서 표의 행(tr)을 만듭니다.
                 visitors.forEach(visitor => {
                     const row = document.createElement('tr');
-
-                    // 등록일시를 한국 시간 형식으로 예쁘게 바꿉니다.
                     const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
-
                     row.innerHTML = `
                         <td>${visitor.id}</td>
                         <td>${visitor.name}</td>
@@ -81,10 +69,9 @@
                 });
 
             } catch (error) {
-                loadingStatus.textContent = `오류 발생: ${error.message}`;
+                visitorList.innerHTML = `<tr><td colspan="7" style="text-align:center; color:red;">오류: ${error.message}</td></tr>`;
             }
         };
     </script>
 </body>
 </html>
-<a href="/admin.html" style="text-align: right; display: block; margin-top: 1rem;">관리자 페이지로 이동 &rarr;</a>
