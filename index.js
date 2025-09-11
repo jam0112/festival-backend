@@ -1,19 +1,20 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const session = require('express-session'); // 1. express-session 불러오기
+const session = require('express-session');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 2. 세션 미들웨어 설정
+// 세션 미들웨어 설정
 app.use(session({
-    secret: process.env.SESSION_SECRET, // 세션 암호화를 위한 비밀키
-    resave: false,                      // 세션이 변경되지 않아도 항상 저장할지 여부
-    saveUninitialized: false,           // 초기화되지 않은 세션을 저장소에 저장할지 여부
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-        secure: false, // https가 아닌 환경에서도 쿠키 사용 가능
-        maxAge: 1000 * 60 * 60 // 쿠키 유효 기간 (1시간)
+        secure: 'auto', 
+        httpOnly: true,
+        maxAge: 1000 * 60 * 60
     }
 }));
 
@@ -22,26 +23,57 @@ mongoose.connect(process.env.DATABASE_URL)
   .then(() => console.log('✅ 데이터베이스에 성공적으로 연결되었습니다.'))
   .catch(e => console.error('❌ 데이터베이스 연결에 실패했습니다:', e));
 
-// ... (이하 모델 정의 및 미들웨어 설정은 이전과 동일) ...
-
-const visitorSchema = new mongoose.Schema({
-    _id: { type: mongoose.Schema.Types.ObjectId, auto: true },
+// 모델 정의
+const Visitor = mongoose.model('Visitor', new mongoose.Schema({
     name: String, number: String, gender: String,
     age_group: String, region: String,
     registeredAt: { type: Date, default: Date.now }
-});
-const Visitor = mongoose.model('Visitor', visitorSchema);
+}));
 
-app.use(express.static('public'));
+// JSON 파싱 미들웨어
 app.use(express.json());
 
-// --- API 라우트 ---
+// --- 보안 및 인증 로직 (정적 파일보다 먼저 와야 함) ---
 
-// 3. (여기에 로그인/로그아웃, 접근제어 로직이 추가될 예정입니다)
+const checkAuth = (req, res, next) => {
+    if (req.session.isLoggedIn) {
+        next();
+    } else {
+        res.redirect('/login.html');
+    }
+};
+
+app.post('/login', (req, res) => {
+    const ADMIN_USER = { username: 'admin', password: 'password123' };
+    const { username, password } = req.body;
+    if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
+        req.session.isLoggedIn = true;
+        res.status(200).json({ message: '로그인 성공' });
+    } else {
+        res.status(401).json({ message: '사용자 이름 또는 비밀번호가 잘못되었습니다.' });
+    }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) return res.status(500).send('로그아웃 실패');
+        res.redirect('/login.html');
+    });
+});
+
+// ✨✨✨ 핵심 변경사항 ✨✨✨
+// 특별 규칙인 '/admin.html' 보안 검사를 먼저 배치합니다.
+app.get('/admin.html', checkAuth, (req, res) => {
+    res.sendFile(__dirname + '/public/admin.html');
+});
+
+// 그 다음에 일반 규칙인 'public' 폴더 서비스를 배치합니다.
+app.use(express.static('public'));
 
 
-// 방문객 조회 API
-app.get('/visitors', async (req, res) => {
+// --- 기존 방문객 API ---
+
+app.get('/visitors', checkAuth, async (req, res) => {
     try {
         const visitors = await Visitor.find().sort({ registeredAt: -1 });
         res.json(visitors);
@@ -50,18 +82,16 @@ app.get('/visitors', async (req, res) => {
     }
 });
 
-// 방문객 등록 API
 app.post('/register', async (req, res) => {
     try {
-        const { name, number, gender, age_group, region } = req.body;
-        const newVisitor = new Visitor({ name, number, gender, age_group, region });
+        const newVisitor = new Visitor(req.body);
         const savedVisitor = await newVisitor.save();
-        console.log('새로운 방문객 등록:', savedVisitor);
         res.status(201).json(savedVisitor);
     } catch (error) {
         res.status(400).json({ message: error.message });
     }
 });
+
 
 app.listen(PORT, () => {
   console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
