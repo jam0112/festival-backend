@@ -89,27 +89,61 @@
             }
         };
 
-        function renderVisitorTable(visitors) {
-            visitorList.innerHTML = ''; 
-            if (visitors.length === 0) {
-                visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
-                return;
-            }
-            visitors.forEach(visitor => {
-                const row = document.createElement('tr');
-                const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
-                row.innerHTML = `
-                    <td>${visitor.name}</td><td>${visitor.number}</td><td>${visitor.gender}</td>
-                    <td>${visitor.age_group}</td><td>${visitor.region}</td><td>${registeredDate}</td>
-                    <td class="actions">
-                        <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
-                        <button class="btn-delete" onclick="alert('삭제 기능 구현 예정')">삭제</button>
-                    </td>
-                `;
-                visitorList.appendChild(row);
-            });
+// 테이블 렌더링 함수
+    function renderVisitorTable(visitors) {
+        visitorList.innerHTML = ''; 
+        if (visitors.length === 0) {
+            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">아직 등록된 방문객이 없습니다.</td></tr>';
+            return;
+        }
+        visitors.forEach(visitor => {
+            const row = document.createElement('tr');
+            // 각 행에 고유 ID를 부여합니다 (나중에 DOM에서 행을 직접 지우기 위해).
+            row.dataset.id = visitor._id; 
+            const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+
+            row.innerHTML = `
+                <td>${visitor.name}</td>
+                <td>${visitor.number}</td>
+                <td>${visitor.gender}</td>
+                <td>${visitor.age_group}</td>
+                <td>${visitor.region}</td>
+                <td>${registeredDate}</td>
+                <td class="actions">
+                    <button class="btn-edit" onclick="alert('수정 기능 구현 예정')">수정</button>
+                    <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
+                </td>
+            `;
+            visitorList.appendChild(row);
+        });
+    }
+
+    // ▼▼▼ 이 함수 전체를 새로 추가하거나 기존 함수를 교체해주세요 ▼▼▼
+    // 방문객 삭제 함수
+    async function deleteVisitor(id) {
+        // 사용자에게 정말 삭제할 것인지 최종 확인을 받습니다.
+        if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+            return; // 사용자가 '취소'를 누르면 함수를 종료합니다.
         }
 
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                alert('성공적으로 삭제되었습니다.');
+                // 서버에서 성공적으로 삭제되면, 화면에서도 해당 행을 바로 지웁니다.
+                // 이렇게 하면 페이지를 새로고침할 필요가 없어 사용자 경험이 더 좋습니다.
+                document.querySelector(`tr[data-id="${id}"]`).remove();
+            } else {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '삭제에 실패했습니다.');
+            }
+        } catch (error) {
+            alert('오류: ' + error.message);
+        }
+    }
         function createGenderChart(visitors) {
             const ctx = document.getElementById('genderChart').getContext('2d');
             const genderCounts = visitors.reduce((acc, v) => { acc[v.gender] = (acc[v.gender] || 0) + 1; return acc; }, {});

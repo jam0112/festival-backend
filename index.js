@@ -44,7 +44,7 @@ const checkAuth = (req, res, next) => {
 };
 
 app.post('/login', (req, res) => {
-    const ADMIN_USER = { username: 'admin', password: 'password123' }; // <-- 여기에 세미콜론 추가됨
+    const ADMIN_USER = { username: 'admin', password: 'naroo1318' }; // <-- 여기에 세미콜론 추가됨
     const { username, password } = req.body;
     if (username === ADMIN_USER.username && password === ADMIN_USER.password) {
         req.session.isLoggedIn = true;
@@ -90,6 +90,32 @@ app.post('/register', async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
+
+app.listen(PORT, () => {
+  console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
+});
+// --- 기존 방문객 API ---
+
+// ... app.post('/register', ...) 코드 아래에 추가 ...
+
+// API: 특정 방문객 삭제
+app.delete('/visitors/:id', checkAuth, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const deletedVisitor = await Visitor.findByIdAndDelete(id);
+        
+        if (!deletedVisitor) {
+            return res.status(404).json({ message: '해당 ID의 방문객을 찾을 수 없습니다.' });
+        }
+        
+        console.log('방문객 삭제 성공:', deletedVisitor);
+        res.status(200).json({ message: '성공적으로 삭제되었습니다.' });
+
+    } catch (error) {
+        res.status(500).json({ message: '서버 오류로 인해 삭제에 실패했습니다.' });
+    }
+});
+
 
 app.listen(PORT, () => {
   console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
