@@ -233,12 +233,72 @@
             new Chart(ctx, { type: 'bar', data: { labels: days, datasets: [{ label: '등록자 수', data: dayCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
         }
 
-        function createWeekdayChart(visitors) {
-            const ctx = document.getElementById('weekdayChart').getContext('2d');
-            const dayCounts = { '주중 (월-금)': 0, '주말 (토-일)': 0 };
-            visitors.forEach(v => { const dayIndex = new Date(v.registeredAt).getDay(); if (dayIndex === 0 || dayIndex === 6) { dayCounts['주말 (토-일)']++; } else { dayCounts['주중 (월-금)']++; } });
-            new Chart(ctx, { type: 'doughnut', data: { labels: Object.keys(dayCounts), datasets: [{ data: Object.values(dayCounts), backgroundColor: ['#4BC0C0', '#FF6384'] }] } });
-        }
+           // (수정) 주중/주말 등록 현황 (남녀 구분 누적 막대그래프)
+    function createWeekdayChart(visitors) {
+        const ctx = document.getElementById('weekdayChart').getContext('d');
+
+        // 데이터를 저장할 구조를 더 복잡하게 변경합니다.
+        const dayCounts = {
+            '주중 (월-금)': { '남성': 0, '여성': 0 },
+            '주말 (토-일)': { '남성': 0, '여성': 0 }
+        };
+
+        // 방문객 데이터를 순회하며 주중/주말 및 성별에 따라 카운트
+        visitors.forEach(visitor => {
+            const dayIndex = new Date(visitor.registeredAt).getDay(); // 0=일, 6=토
+            const gender = visitor.gender === '남성' ? '남성' : '여성'; // 성별을 남/여로 통일
+
+            if (dayIndex === 0 || dayIndex === 6) {
+                // 주말 카운트
+                dayCounts['주말 (토-일)'][gender]++;
+            } else {
+                // 주중 카운트
+                dayCounts['주중 (월-금)'][gender]++;
+            }
+        });
+
+        new Chart(ctx, {
+            type: 'bar', // 차트 종류를 'doughnut'에서 'bar'로 변경
+            data: {
+                labels: ['주중 (월-금)', '주말 (토-일)'],
+                // 데이터셋을 성별에 따라 두 개로 나눔
+                datasets: [
+                    {
+                        label: '남성',
+                        data: [
+                            dayCounts['주중 (월-금)']['남성'],
+                            dayCounts['주말 (토-일)']['남성']
+                        ],
+                        backgroundColor: '#36A2EB', // 남성: 파란색
+                    },
+                    {
+                        label: '여성',
+                        data: [
+                            dayCounts['주중 (월-금)']['여성'],
+                            dayCounts['주말 (토-일)']['여성']
+                        ],
+                        backgroundColor: '#FF6384', // 여성: 분홍색
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                // x축과 y축을 쌓도록(stacked) 설정
+                scales: {
+                    x: {
+                        stacked: true,
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1 // y축 눈금을 정수로만 표시
+                        }
+                    }
+                }
+            }
+        });
+    }
     </script>
 </body>
 </html>

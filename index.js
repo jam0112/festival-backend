@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const bcrypt = require('bcrypt'); // bcrypt 불러오기
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,19 +23,18 @@ mongoose.connect(process.env.DATABASE_URL)
 
 // --- 모델(Schema) 정의 ---
 
-// 1. User 모델 (새로 추가)
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true }
 });
 const User = mongoose.model('User', userSchema);
 
-// 2. Visitor 모델 (기존과 동일)
-const Visitor = mongoose.model('Visitor', new mongoose.Schema({
+const visitorSchema = new mongoose.Schema({
     name: String, number: String, gender: String,
-    age: Number, region: String, // <-- 이렇게 변경
+    age: Number, region: String,
     registeredAt: { type: Date, default: Date.now }
-}));
+});
+const Visitor = mongoose.model('Visitor', visitorSchema);
 
 
 // --- 보안 및 인증 로직 ---
@@ -48,7 +47,6 @@ const checkAuth = (req, res, next) => {
     }
 };
 
-// 로그인 로직 (DB에서 사용자 확인하도록 변경)
 app.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -84,15 +82,55 @@ app.get('/admin.html', checkAuth, (req, res) => {
 });
 app.use(express.static('public'));
 
-// --- 이용자 API (CRUD) ---
-app.get('/visitors', checkAuth, async (req, res) => { /* 이전과 동일 */ });
+// --- 방문객 API (CRUD) ---
+app.get('/visitors', checkAuth, async (req, res) => {
+    try {
+        const visitors = await Visitor.find().sort({ registeredAt: -1 });
+        res.json(visitors);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 app.post('/register', async (req, res) => {
     try {
-        const { name, number, gender, age, region } = req.body; // <-- 이렇게 변경
-        const newVisitor = new Visitor({ name, number, gender, age, region }); // <-- 이렇게 변경
-app.patch('/visitors/:id', checkAuth, async (req, res) => { /* 이전과 동일 */ });
-app.delete('/visitors/:id', checkAuth, async (req, res) => { /* 이전과 동일 */ });
+        const { name, number, gender, age, region } = req.body;
+        const newVisitor = new Visitor({ name, number, gender, age, region });
+        const savedVisitor = await newVisitor.save();
+        res.status(201).json(savedVisitor);
+    } catch (error) {
+        res.status(400).json({ message: error.message });
+    }
+});
 
+app.patch('/visitors/:id', checkAuth, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const updatedData = req.body;
+        const updatedVisitor = await Visitor.findByIdAndUpdate(id, updatedData, { new: true });
+
+        if (!updatedVisitor) {
+            return res.status(404).json({ message: '해당 ID의 방문객을 찾을 수 없습니다.' });
+        }
+        res.status(200).json(updatedVisitor);
+    } catch (error) {
+        res.status(500).json({ message: '서버 오류로 인해 수정에 실패했습니다.' });
+    }
+});
+
+app.delete('/visitors/:id', checkAuth, async (req, res) => {
+    try {
+        const id = req.params.id;
+        const deletedVisitor = await Visitor.findByIdAndDelete(id);
+        
+        if (!deletedVisitor) {
+            return res.status(404).json({ message: '해당 ID의 방문객을 찾을 수 없습니다.' });
+        }
+        res.status(200).json({ message: '성공적으로 삭제되었습니다.' });
+    } catch (error) {
+        res.status(500).json({ message: '서버 오류로 인해 삭제에 실패했습니다.' });
+    }
+});
 
 app.listen(PORT, () => {
   console.log(`서버가 ${PORT}번 포트에서 실행 중입니다.`);
