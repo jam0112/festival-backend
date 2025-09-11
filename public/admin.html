@@ -164,16 +164,57 @@
     // (수정) 연령대별 차트 -> 나이 기반 차트
     function createAgeChartByNumber(visitors) {
         const ctx = document.getElementById('ageChart').getContext('2d');
-        const ageGroups = ['8-13(초등)', '14-16(중등)', '17-19(고등)', '20-24(후기)'];
-        const ageCounts = {'8-13(초등)': 0, '14-16(중등)': 0, '17-19(고등)': 0, '20-24(후기)': 0};
+        // 차트 라벨과 데이터 저장 객체 정의
+        const ageGroups = ['8-13(초등)', '14-16(중등)', '17-19(고등)', '20-24(후기)', '기타'];
+        const ageCounts = {
+            '8-13(초등)': 0,
+            '14-16(중등)': 0,
+            '17-19(고등)': 0,
+            '20-24(후기)': 0,
+            '기타': 0
+        };
 
+        // 방문객 데이터를 순회하며 나이 그룹별로 카운트
         visitors.forEach(v => {
             const age = v.age;
-            if (age <= 13) ageCounts['8-13(초등)']++;
-            else if (age <= 16) ageCounts['14-16(중등)']++;
-            else if (age <= 19) ageCounts['17-19(고등)']++;
-            else ageCounts['20-24(후기)']++;
+            if (age >= 8 && age <= 13) {
+                ageCounts['8-13(초등)']++;
+            } else if (age >= 14 && age <= 16) {
+                ageCounts['14-16(중등)']++;
+            } else if (age >= 17 && age <= 19) {
+                ageCounts['17-19(고등)']++;
+            } else if (age >= 20 && age <= 24) {
+                ageCounts['20-24(후기)']++;
+            } else {
+                ageCounts['기타']++; // 어느 그룹에도 속하지 않으면 '기타'로 분류
+            }
         });
+
+        // 차트 생성
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ageGroups,
+                datasets: [{
+                    label: '방문객 수',
+                    data: ageGroups.map(group => ageCounts[group]), // 각 그룹의 카운트 값을 데이터로 사용
+                    backgroundColor: [
+                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
+                    ],
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { // y축 눈금이 정수로만 표시되도록 설정
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
 
         new Chart(ctx, { type: 'bar', /* ... 차트 설정은 이전과 유사 ... */ });
     }
