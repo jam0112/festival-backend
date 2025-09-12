@@ -72,33 +72,39 @@
     let allVisitors = [];
     let displayedVisitors = [];
 
+    // 대시보드 전체를 업데이트하는 함수
+    function updateDashboard(visitors) {
+        displayedVisitors = visitors;
+        renderVisitorTable(visitors);
+        createGenderChart(visitors);
+        createAgeChartByNumber(visitors);
+        createQuarterChart(visitors);
+        createMonthChart(visitors);
+        createDayChart(visitors);
+        createWeekdayChart(visitors);
+    }
+
     window.onload = async () => {
         try {
             const response = await fetch(`${API_URL}/visitors`);
             if (!response.ok) throw new Error('데이터 로딩 실패');
             allVisitors = await response.json();
-            displayedVisitors = [...allVisitors];
             
-            renderVisitorTable(displayedVisitors);
-            createGenderChart(allVisitors);
-            createAgeChartByNumber(allVisitors);
-            createQuarterChart(allVisitors);
-            createMonthChart(allVisitors);
-            createDayChart(allVisitors);
-            createWeekdayChart(allVisitors);
+            // 처음에는 전체 데이터로 대시보드를 그림
+            updateDashboard(allVisitors);
 
             // 월별 필터 이벤트 리스너 추가
             const monthFilter = document.getElementById('monthFilter');
             monthFilter.addEventListener('change', () => {
                 const selectedMonth = monthFilter.value;
                 if (selectedMonth === 'all') {
-                    displayedVisitors = [...allVisitors];
+                    updateDashboard(allVisitors);
                 } else {
-                    displayedVisitors = allVisitors.filter(visitor => {
+                    const filteredVisitors = allVisitors.filter(visitor => {
                         return new Date(visitor.registeredAt).getMonth() == selectedMonth;
                     });
+                    updateDashboard(filteredVisitors);
                 }
-                renderVisitorTable(displayedVisitors);
             });
 
         } catch (error) {
@@ -110,10 +116,13 @@
     function renderVisitorTable(visitors) {
         visitorList.innerHTML = ''; 
         if (visitors.length === 0) {
-            visitorList.innerHTML = '<tr><td colspan="9" style="text-align:center;">해당 월에 등록된 방문객이 없습니다.</td></tr>';
+            visitorList.innerHTML = '<tr><td colspan="9" style="text-align:center;">해당 조건에 맞는 방문객이 없습니다.</td></tr>';
             return;
         }
-        visitors.forEach((visitor, index) => {
+        // 필터링된 목록을 기준으로 번호를 다시 매김
+        const sortedVisitors = [...visitors].sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
+        
+        sortedVisitors.forEach((visitor, index) => {
             const row = document.createElement('tr');
             row.dataset.id = visitor._id; 
             const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
@@ -176,10 +185,11 @@
         try {
             const response = await fetch(`${API_URL}/visitors/${id}`, { method: 'DELETE' });
             if (response.ok) {
+                // 원본 데이터에서 삭제
                 allVisitors = allVisitors.filter(v => v._id !== id);
-                displayedVisitors = displayedVisitors.filter(v => v._id !== id);
+                // 현재 필터 상태에 맞춰 화면 다시 그리기
+                document.getElementById('monthFilter').dispatchEvent(new Event('change'));
                 alert('성공적으로 삭제되었습니다.');
-                renderVisitorTable(displayedVisitors); // Re-render the table
             } else { 
                 const errorResult = await response.json();
                 throw new Error(errorResult.message || '삭제에 실패했습니다.');
@@ -215,7 +225,7 @@
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, '방문객 명단');
-        XLSX.writeFile(workbook, '방문객 명단 (필터링됨).xlsx');
+        XLSX.writeFile(workbook, '방문객_명단 (필터링됨).xlsx');
     }
 
     function createGenderChart(visitors) {
