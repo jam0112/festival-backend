@@ -3,175 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>청소년자유공간 콤마 [방명록 등록]</title>
+    <title>콤마 관리자 페이지</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1rem;
-            box-sizing: border-box;
-        }
-        .container {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
-        }
-        input, select, textarea {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-family: inherit; /* 폰트 상속 */
-            font-size: 1rem; /* 폰트 크기 통일 */
-        }
-        textarea {
-            resize: none;
-        }
-        button {
-            width: 100%;
-            padding: 0.8rem;
-            background-color: #0c9bfa;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        button:hover {
-            background-color: #0073c4;
-        }
-        #message {
-            margin-top: 1rem;
-            text-align: center;
-            font-weight: bold;
-        }
-        .admin-link {
-            display: block;
-            text-align: right;
-            margin-top: 1rem;
-            font-size: 0.9rem;
-            color: #555;
-            text-decoration: none;
-        }
+        body { font-family: sans-serif; max-width: 1200px; margin: 2rem auto; padding: 1rem; }
+        h1, h2 { text-align: center; }
+        a { text-decoration: none; color: #007bff; }
+        .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .controls-right { display: flex; align-items: center; gap: 1rem; }
+        .controls-right label { font-weight: bold; font-size: 0.9rem; }
+        .controls-right select { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
+        .excel-btn { background-color: #1D6F42; color: white; padding: 0.6rem 1rem; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
+        .excel-btn:hover { background-color: #144E2E; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+        th, td { border: 1px solid #ddd; padding: 0.8rem; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-edit { background-color: #ffc107; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-save { background-color: #28a745; color: white; }
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .chart-item { padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>콤마 입장 등록</h1>
-        <form id="registrationForm">
-            <div class="form-group">
-                <label for="name">이름</label>
-                <input type="text" id="name" required>
-            </div>
-            <div class="form-group">
-                <label for="number">연락처</label>
-                <input type="tel" id="number" placeholder="010-1234-5678" required>
-            </div>
-            <div class="form-group">
-                <label for="gender">성별</label>
-                <select id="gender" required>
-                    <option value="">성별 선택</option>
-                    <option value="남성">남성</option>
-                    <option value="여성">여성</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="age">나이</label>
-                <input type="number" id="age" placeholder="8세 ~ 24세 사이의 숫자 입력" required>
-            </div>
-            <div class="form-group">
-                <label for="region">지역</label>
-                <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
-            </div>
-            <div class="form-group">
-                <label for="suggestion">콤마에서 생겼으면 하는 놀거리는?</label>
-                <textarea id="suggestion" rows="3" placeholder="자유롭게 적어주세요!"></textarea>
-            </div>
-            <button type="submit">등록하기</button>
-        </form>
-        <div id="message"></div>
-        <a href="/admin.html" class="admin-link">관리자 페이지로 이동 &rarr;</a>
+    <div class="header-controls">
+        <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
+        <div class="controls-right">
+            <label for="yearFilter">연도:</label>
+            <select id="yearFilter"></select>
+            <label for="monthFilter">월:</label>
+            <select id="monthFilter">
+                <option value="all">전체</option>
+                <option value="0">1월</option><option value="1">2월</option><option value="2">3월</option>
+                <option value="3">4월</option><option value="4">5월</option><option value="5">6월</option>
+                <option value="6">7월</option><option value="7">8월</option><option value="8">9월</option>
+                <option value="9">10월</option><option value="10">11월</option><option value="11">12월</option>
+            </select>
+            <button class="excel-btn" onclick="exportToExcel()">엑셀로 다운로드 📥</button>
+        </div>
     </div>
+    <h1>📝 콤마 관리자 페이지: 등록자 명단</h1>
+    
+    <div class="charts-container">
+        <div class="chart-item"><h2>성별 분포</h2><canvas id="genderChart"></canvas></div>
+        <div class="chart-item"><h2>연령대별 분포</h2><canvas id="ageChart"></canvas></div>
+        <div class="chart-item"><h2>분기별 등록 현황</h2><canvas id="quarterChart"></canvas></div>
+        <div class="chart-item"><h2>월별 등록 현황</h2><canvas id="monthChart"></canvas></div>
+        <div class="chart-item"><h2>요일별 등록 현황</h2><canvas id="dayChart"></canvas></div>
+        <div class="chart-item"><h2>주중/주말 등록 현황</h2><canvas id="weekdayChart"></canvas></div>
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>번호</th><th>이름</th><th>연락처</th><th>성별</th><th>나이</th>
+                <th>지역</th><th>놀거리 제안</th><th>등록일시</th><th>관리</th>
+            </tr>
+        </thead>
+        <tbody id="visitorList"></tbody>
+    </table>
 
-    <script>
-        const form = document.getElementById('registrationForm');
-        const messageDiv = document.getElementById('message');
-        const API_URL = 'https://festival-backend-zika.onrender.com';
+<script>
+    Chart.register(ChartDataLabels);
 
-        // 연락처 자동 하이픈 추가 기능
-        const phoneInput = document.getElementById('number');
-        phoneInput.addEventListener('input', (event) => {
-            const value = phoneInput.value.replace(/\D/g, '');
-            const formattedValue = value.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
-            phoneInput.value = formattedValue;
+    const API_URL = 'https://festival-backend-zika.onrender.com';
+    const visitorList = document.getElementById('visitorList');
+    const yearFilter = document.getElementById('yearFilter');
+    const monthFilter = document.getElementById('monthFilter');
+    let allVisitors = [];
+    let displayedVisitors = [];
+    let chartInstances = {};
+
+    function updateDashboard(visitors) {
+        displayedVisitors = visitors;
+        renderVisitorTable(visitors);
+        createGenderChart(visitors);
+        createAgeChartByNumber(visitors);
+        createQuarterChart(visitors);
+        createMonthChart(visitors);
+        createDayChart(visitors);
+        createWeekdayChart(visitors);
+    }
+
+    function populateYearFilter() {
+        const years = [...new Set(allVisitors.map(v => new Date(v.registeredAt).getFullYear()))];
+        years.sort((a, b) => b - a);
+        
+        yearFilter.innerHTML = '<option value="all">전체</option>';
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = `${year}년`;
+            yearFilter.appendChild(option);
         });
+    }
 
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
+    function applyFilters() {
+        const selectedYear = yearFilter.value;
+        const selectedMonth = monthFilter.value;
+        let filtered = allVisitors;
+        if (selectedYear !== 'all') {
+            filtered = filtered.filter(v => new Date(v.registeredAt).getFullYear() == selectedYear);
+        }
+        if (selectedMonth !== 'all') {
+            filtered = filtered.filter(v => new Date(v.registeredAt).getMonth() == selectedMonth);
+        }
+        updateDashboard(filtered);
+    }
 
-            const name = document.getElementById('name').value;
-            const number = document.getElementById('number').value;
-            const gender = document.getElementById('gender').value;
-            const age = document.getElementById('age').value;
-            const region = document.getElementById('region').value;
-            const suggestion = document.getElementById('suggestion').value;
+    window.onload = async () => {
+        try {
+            const response = await fetch(`${API_URL}/visitors`);
+            if (!response.ok) throw new Error('데이터 로딩 실패');
+            allVisitors = await response.json();
+            
+            populateYearFilter();
+            updateDashboard(allVisitors);
 
+            yearFilter.addEventListener('change', applyFilters);
+            monthFilter.addEventListener('change', applyFilters);
+        } catch (error) {
+            console.error('페이지 로딩 중 오류:', error);
+            visitorList.innerHTML = `<tr><td colspan="9" style="color:red; text-align:center;">${error.message}</td></tr>`;
+        }
+    };
 
-            // 모든 항목 입력 검사
-            if (!name || !number || !gender || !age || !region) {
-                messageDiv.textContent = '모든 항목을 입력해주세요.';
-                return;
-            }
-
-            // 나이 범위 유효성 검사
-            const ageNumber = parseInt(age, 10);
-            if (ageNumber < 8 || ageNumber > 24) {
-                messageDiv.textContent = '나이는 8세부터 24세까지만 등록 가능합니다.';
-                return;
-            }
-
-            try {
-                messageDiv.textContent = '등록 중...';
-                const response = await fetch(`${API_URL}/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, number, gender, age, region, suggestion })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    messageDiv.textContent = '🎉 등록이 완료되었습니다!';
-                    form.reset();
-                } else {
-                    throw new Error(result.message || '등록에 실패했습니다.');
-                }
-
-            } catch (error) {
-                messageDiv.textContent = '오류: ' + error.message;
-            }
+    function renderVisitorTable(visitors) {
+        visitorList.innerHTML = ''; 
+        if (visitors.length === 0) {
+            visitorList.innerHTML = '<tr><td colspan="9" style="text-align:center;">해당 조건에 맞는 방문객이 없습니다.</td></tr>';
+            return;
+        }
+        const sortedVisitors = [...visitors].sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
+        sortedVisitors.forEach((visitor, index) => {
+            const row = document.createElement('tr');
+            row.dataset.id = visitor._id; 
+            const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${visitor.name}</td><td>${visitor.number}</td><td>${visitor.gender}</td>
+                <td>${visitor.age}</td><td>${visitor.region}</td><td>${visitor.suggestion || ''}</td><td>${registeredDate}</td>
+                <td class="actions">
+                    <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
+                    <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
+                </td>
+            `;
+            visitorList.appendChild(row);
         });
-    </script>
+    }
+    
+    function editVisitor(id) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const cells = row.querySelectorAll('td');
+        const [num, name, number, gender, age, region, suggestion] = Array.from(cells).map(c => c.textContent);
+        row.innerHTML = `
+            <td>${num}</td>
+            <td><input type="text" value="${name}"></td><td><input type="text" value="${number}"></td>
+            <td><select><option value="남성" ${gender === '남성' ? 'selected' : ''}>남성</option><option value="여성" ${gender === '여성' ? 'selected' : ''}>여성</option></select></td>
+            <td><input type="number" value="${age}"></td><td><input type="text" value="${region}"></td>
+            <td><input type="text" value="${suggestion}"></td><td>${cells[7].textContent}</td> 
+            <td class="actions"><button class="btn-save" onclick="saveVisitor('${id}')">저장</button></td>
+        `;
+    }
+
+    async function saveVisitor(id) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const inputs = row.querySelectorAll('input, select');
+        const updatedData = { 
+            name: inputs[0].value, number: inputs[1].value, gender: inputs[2].value, 
+            age: inputs[3].value, region: inputs[4].value, suggestion: inputs[5].value 
+        };
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updatedData)
+            });
+            if (response.ok) {
+                const savedVisitor = await response.json();
+                allVisitors = allVisitors.map(v => v._id === id ? savedVisitor : v);
+                applyFilters();
+                alert('성공적으로 수정되었습니다.');
+            } else { 
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '수정에 실패했습니다.');
+            }
+        } catch (error) { alert('오류: ' + error.message); }
+    }
+    
+    async function deleteVisitor(id) {
+        if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까?')) return;
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                allVisitors = allVisitors.filter(v => v._id !== id);
+                applyFilters();
+                alert('성공적으로 삭제되었습니다.');
+            } else { 
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '삭제에 실패했습니다.');
+            }
+        } catch (error) { alert('오류: ' + error.message); }
+    }
+
+    function revertRowToText(id, visitor) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
+        const index = displayedVisitors.findIndex(v => v._id === id);
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${visitor.name}</td><td>${visitor.number}</td><td>${visitor.gender}</td>
+            <td>${visitor.age}</td><td>${visitor.region}</td><td>${visitor.suggestion || ''}</td><td>${registeredDate}</td>
+            <td class="actions">
+                <button class="btn-edit" onclick="editVisitor('${visitor._id}')">수정</button>
+                <button class="btn-delete" onclick="deleteVisitor('${visitor._id}')">삭제</button>
+            </td>
+        `;
+    }
+    
+    function exportToExcel() {
+        if (displayedVisitors.length === 0) {
+            alert('다운로드할 데이터가 없습니다.');
+            return;
+        }
+        const dataToExport = displayedVisitors.map((visitor, index) => ({
+            '번호': index + 1, '이름': visitor.name, '연락처': visitor.number,
+            '성별': visitor.gender, '나이': visitor.age, '지역': visitor.region,
+            '놀거리 제안': visitor.suggestion || '', '등록일시': new Date(visitor.registeredAt).toLocaleString('ko-KR')
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, '방문객 명단');
+        XLSX.writeFile(workbook, '방문객 명단 (필터링됨).xlsx');
+    }
+    
+    function drawChart(chartId, chartConfig) {
+        if (chartInstances[chartId]) {
+            chartInstances[chartId].destroy();
+        }
+        const ctx = document.getElementById(chartId).getContext('2d');
+        chartInstances[chartId] = new Chart(ctx, chartConfig);
+    }
+
+    function createGenderChart(visitors) {
+        const counts = visitors.reduce((acc, v) => { acc[v.gender] = (acc[v.gender] || 0) + 1; return acc; }, {});
+        const labels = ['남성', '여성'];
+        const data = labels.map(label => counts[label] || 0);
+        const colors = ['#36A2EB', '#FF6384'];
+        drawChart('genderChart', {
+            type: 'pie', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
+            options: { plugins: { datalabels: { formatter: (value, ctx) => { if (value === 0) return null; const sum = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0); const percentage = (value * 100 / sum).toFixed(1) + "%"; return `${value}명 (${percentage})`; }, color: '#fff', font: { weight: 'bold' } } } }
+        });
+    }
+
+    function createAgeChartByNumber(visitors) {
+        const ageGroups = ['8-13(초등)', '14-16(중등)', '17-19(고등)', '20-24(후기)', '기타'];
+        const ageCounts = { '8-13(초등)': 0, '14-16(중등)': 0, '17-19(고등)': 0, '20-24(후기)': 0, '기타': 0 };
+        visitors.forEach(v => {
+            const age = v.age;
+            if (age >= 8 && age <= 13) ageCounts['8-13(초등)']++;
+            else if (age >= 14 && age <= 16) ageCounts['14-16(중등)']++;
+            else if (age >= 17 && age <= 19) ageCounts['17-19(고등)']++;
+            else if (age >= 20 && age <= 24) ageCounts['20-24(후기)']++;
+            else ageCounts['기타']++;
+        });
+        drawChart('ageChart', {
+            type: 'bar', data: { labels: ageGroups, datasets: [{ label: '방문객 수', data: ageGroups.map(g => ageCounts[g]), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { datalabels: { anchor: 'end', align: 'top', font: { weight: 'bold' } } } }
+        });
+    }
+    
+    function createQuarterChart(visitors) {
+        const quarters = ['1분기 (1-3월)', '2분기 (4-6월)', '3분기 (7-9월)', '4분기 (10-12월)'];
+        const quarterCounts = Array(4).fill(0);
+        visitors.forEach(v => { quarterCounts[Math.floor(new Date(v.registeredAt).getMonth() / 3)]++; });
+        drawChart('quarterChart', {
+            type: 'bar', data: { labels: quarters, datasets: [{ label: '등록자 수', data: quarterCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0'] }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { datalabels: { anchor: 'end', align: 'top', font: { weight: 'bold' } } } }
+        });
+    }
+
+    function createMonthChart(visitors) {
+        const monthCounts = Array(12).fill(0);
+        visitors.forEach(v => { monthCounts[new Date(v.registeredAt).getMonth()]++; });
+        drawChart('monthChart', {
+            type: 'line', data: { labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], datasets: [{ label: '등록자 수', data: monthCounts, borderColor: '#FF9F40', tension: 0.1 }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { datalabels: { anchor: 'end', align: 'top', font: { weight: 'bold' }, backgroundColor: 'rgba(255,159,64,0.7)', borderRadius: 4, color: 'white' } } }
+        });
+    }
+    
+    function createDayChart(visitors) {
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayCounts = Array(7).fill(0);
+        visitors.forEach(v => { dayCounts[new Date(v.registeredAt).getDay()]++; });
+        drawChart('dayChart', {
+            type: 'bar', data: { labels: days, datasets: [{ label: '등록자 수', data: dayCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { datalabels: { anchor: 'end', align: 'top', font: { weight: 'bold' } } } }
+        });
+    }
+
+    function createWeekdayChart(visitors) {
+        const dayCounts = { '주중 (월-금)': { '남성': 0, '여성': 0 }, '주말 (토-일)': { '남성': 0, '여성': 0 } };
+        visitors.forEach(visitor => {
+            const dayIndex = new Date(visitor.registeredAt).getDay();
+            const gender = visitor.gender === '남성' ? '남성' : '여성';
+            if (dayIndex === 0 || dayIndex === 6) { dayCounts['주말 (토-일)'][gender]++; } else { dayCounts['주중 (월-금)'][gender]++; }
+        });
+        drawChart('weekdayChart', {
+            type: 'bar', data: { labels: ['주중 (월-금)', '주말 (토-일)'], datasets: [ { label: '남성', data: [dayCounts['주중 (월-금)']['남성'], dayCounts['주말 (토-일)']['남성']], backgroundColor: '#36A2EB' }, { label: '여성', data: [dayCounts['주중 (월-금)']['여성'], dayCounts['주말 (토-일)']['여성']], backgroundColor: '#FF6384' } ] },
+            options: { responsive: true, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }, plugins: { datalabels: { color: 'white', font: { weight: 'bold' } } } }
+        });
+    }
+</script>
 </body>
 </html>
