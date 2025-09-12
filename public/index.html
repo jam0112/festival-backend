@@ -36,12 +36,17 @@
             margin-bottom: 0.5rem;
             color: #555;
         }
-        input, select {
+        input, select, textarea {
             width: 100%;
             padding: 0.8rem;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+            font-family: inherit; /* 폰트 상속 */
+            font-size: 1rem; /* 폰트 크기 통일 */
+        }
+        textarea {
+            resize: none;
         }
         button {
             width: 100%;
