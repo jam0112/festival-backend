@@ -13,7 +13,7 @@
         a { text-decoration: none; color: #007bff; }
         .header-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .controls-right { display: flex; align-items: center; gap: 1rem; }
-        .controls-right label { font-weight: bold; }
+        .controls-right label { font-weight: bold; font-size: 0.9rem; }
         .controls-right select { padding: 0.5rem; border-radius: 5px; border: 1px solid #ccc; }
         .excel-btn { background-color: #1D6F42; color: white; padding: 0.6rem 1rem; border: none; border-radius: 5px; cursor: pointer; font-size: 0.9rem; }
         .excel-btn:hover { background-color: #144E2E; }
@@ -33,7 +33,9 @@
     <div class="header-controls">
         <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
         <div class="controls-right">
-            <label for="monthFilter">월별 보기:</label>
+            <label for="yearFilter">연도:</label>
+            <select id="yearFilter"></select>
+            <label for="monthFilter">월:</label>
             <select id="monthFilter">
                 <option value="all">전체</option>
                 <option value="0">1월</option><option value="1">2월</option><option value="2">3월</option>
@@ -69,11 +71,12 @@
 
     const API_URL = 'https://festival-backend-zika.onrender.com';
     const visitorList = document.getElementById('visitorList');
+    const yearFilter = document.getElementById('yearFilter');
+    const monthFilter = document.getElementById('monthFilter');
     let allVisitors = [];
     let displayedVisitors = [];
     let chartInstances = {};
 
-    // 대시보드 전체(테이블 + 모든 차트)를 업데이트하는 함수
     function updateDashboard(visitors) {
         displayedVisitors = visitors;
         renderVisitorTable(visitors);
@@ -85,28 +88,44 @@
         createWeekdayChart(visitors);
     }
 
+    function populateYearFilter() {
+        const years = [...new Set(allVisitors.map(v => new Date(v.registeredAt).getFullYear()))];
+        years.sort((a, b) => b - a);
+        
+        yearFilter.innerHTML = '<option value="all">전체</option>';
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = `${year}년`;
+            yearFilter.appendChild(option);
+        });
+    }
+
+    function applyFilters() {
+        const selectedYear = yearFilter.value;
+        const selectedMonth = monthFilter.value;
+        let filtered = allVisitors;
+
+        if (selectedYear !== 'all') {
+            filtered = filtered.filter(v => new Date(v.registeredAt).getFullYear() == parseInt(selectedYear));
+        }
+        if (selectedMonth !== 'all') {
+            filtered = filtered.filter(v => new Date(v.registeredAt).getMonth() == parseInt(selectedMonth));
+        }
+        updateDashboard(filtered);
+    }
+
     window.onload = async () => {
         try {
             const response = await fetch(`${API_URL}/visitors`);
             if (!response.ok) throw new Error('데이터 로딩 실패');
             allVisitors = await response.json();
             
-            // 처음에는 전체 데이터로 대시보드를 그림
+            populateYearFilter();
             updateDashboard(allVisitors);
 
-            // 월별 필터 이벤트 리스너 추가
-            const monthFilter = document.getElementById('monthFilter');
-            monthFilter.addEventListener('change', () => {
-                const selectedMonth = monthFilter.value;
-                if (selectedMonth === 'all') {
-                    updateDashboard(allVisitors);
-                } else {
-                    const filteredVisitors = allVisitors.filter(visitor => {
-                        return new Date(visitor.registeredAt).getMonth() == selectedMonth;
-                    });
-                    updateDashboard(filteredVisitors);
-                }
-            });
+            yearFilter.addEventListener('change', applyFilters);
+            monthFilter.addEventListener('change', applyFilters);
         } catch (error) {
             console.error('페이지 로딩 중 오류:', error);
             visitorList.innerHTML = `<tr><td colspan="9" style="color:red; text-align:center;">${error.message}</td></tr>`;
@@ -119,9 +138,7 @@
             visitorList.innerHTML = '<tr><td colspan="9" style="text-align:center;">해당 조건에 맞는 방문객이 없습니다.</td></tr>';
             return;
         }
-        
         const sortedVisitors = [...visitors].sort((a, b) => new Date(b.registeredAt) - new Date(a.registeredAt));
-        
         sortedVisitors.forEach((visitor, index) => {
             const row = document.createElement('tr');
             row.dataset.id = visitor._id; 
@@ -143,13 +160,10 @@
         const row = document.querySelector(`tr[data-id="${id}"]`);
         const cells = row.querySelectorAll('td');
         const [num, name, number, gender, age, region, suggestion] = Array.from(cells).map(c => c.textContent);
-
         row.innerHTML = `
             <td>${num}</td>
             <td><input type="text" value="${name}"></td><td><input type="text" value="${number}"></td>
-            <td>
-                <select><option value="남성" ${gender === '남성' ? 'selected' : ''}>남성</option><option value="여성" ${gender === '여성' ? 'selected' : ''}>여성</option></select>
-            </td>
+            <td><select><option value="남성" ${gender === '남성' ? 'selected' : ''}>남성</option><option value="여성" ${gender === '여성' ? 'selected' : ''}>여성</option></select></td>
             <td><input type="number" value="${age}"></td><td><input type="text" value="${region}"></td>
             <td><input type="text" value="${suggestion}"></td><td>${cells[7].textContent}</td> 
             <td class="actions"><button class="btn-save" onclick="saveVisitor('${id}')">저장</button></td>
@@ -170,7 +184,7 @@
             if (response.ok) {
                 const savedVisitor = await response.json();
                 allVisitors = allVisitors.map(v => v._id === id ? savedVisitor : v);
-                document.getElementById('monthFilter').dispatchEvent(new Event('change'));
+                applyFilters();
                 alert('성공적으로 수정되었습니다.');
             } else { 
                 const errorResult = await response.json();
@@ -185,7 +199,8 @@
             const response = await fetch(`${API_URL}/visitors/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 allVisitors = allVisitors.filter(v => v._id !== id);
-                document.getElementById('monthFilter').dispatchEvent(new Event('change'));
+                populateYearFilter();
+                applyFilters();
                 alert('성공적으로 삭제되었습니다.');
             } else { 
                 const errorResult = await response.json();
