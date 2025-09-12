@@ -5,84 +5,160 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>청소년자유공간 콤마 [방명록 등록]</title>
     <style>
-        body { font-family: sans-serif; max-width: 500px; margin: 2rem auto; padding: 1rem; }
-        form { display: flex; flex-direction: column; gap: 0.8rem; }
-        input, select, button { padding: 0.8rem; font-size: 1rem; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-        #result { margin-top: 1rem; padding: 1rem; background-color: #f0f0f0; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            background-color: #0c9bfa;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #0073c4;
+        }
+        #message {
+            margin-top: 1rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        .admin-link {
+            display: block;
+            text-align: right;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #555;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
-    <h1>콤마 입장 등록</h1>
-    <form id="registerForm">
-        <input type="text" id="name" placeholder="이름" required>
-        
-        <input type="tel" id="number" placeholder="010-****-****" maxlength="13" required>
-
-        <select id="gender" required>
-            <option value="">성별 선택</option>
-            <option value="남성">남성</option>
-            <option value="여성">여성</option>
-        </select>
-        <input type="number" id="age" placeholder="나이를 숫자로 입력하세요" required>
-        <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
-        <button type="submit">등록하기</button>
-    </form>
-    <a href="/admin.html" style="text-align: right; display: block; margin-top: 1rem;">관리자 페이지로 이동 &rarr;</a>
-    <div id="result"></div>
+    <div class="container">
+        <h1>콤마 입장 등록</h1>
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="name">이름</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="number">연락처</label>
+                <input type="tel" id="number" placeholder="010-1234-5678" required>
+            </div>
+            <div class="form-group">
+                <label for="gender">성별</label>
+                <select id="gender" required>
+                    <option value="">성별 선택</option>
+                    <option value="남성">남성</option>
+                    <option value="여성">여성</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="age">나이</label>
+                <input type="number" id="age" placeholder="8세 ~ 24세 사이의 숫자 입력" required>
+            </div>
+            <div class="form-group">
+                <label for="region">지역</label>
+                <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
+            </div>
+            <button type="submit">등록하기</button>
+        </form>
+        <div id="message"></div>
+        <a href="/admin.html" class="admin-link">관리자 페이지로 이동 &rarr;</a>
+    </div>
 
     <script>
-        const form = document.getElementById('registerForm');
-        const resultDiv = document.getElementById('result');
-        const numberInput = document.getElementById('number'); // 연락처 input 가져오기
-
+        const form = document.getElementById('registrationForm');
+        const messageDiv = document.getElementById('message');
         const API_URL = 'https://festival-backend-zika.onrender.com';
 
-        // 2. 연락처 자동 하이픈 추가를 위한 스크립트
-        numberInput.addEventListener('input', (event) => {
-            const value = numberInput.value.replace(/\D/g, ''); // 숫자 이외의 문자 제거
-            const length = value.length;
-            
-            let formattedNumber = '';
-            if (length < 4) {
-                formattedNumber = value;
-            } else if (length < 8) {
-                formattedNumber = `${value.substring(0, 3)}-${value.substring(3)}`;
-            } else {
-                formattedNumber = `${value.substring(0, 3)}-${value.substring(3, 7)}-${value.substring(7, 11)}`;
-            }
-            numberInput.value = formattedNumber;
+        // 연락처 자동 하이픈 추가 기능
+        const phoneInput = document.getElementById('number');
+        phoneInput.addEventListener('input', (event) => {
+            const value = phoneInput.value.replace(/\D/g, '');
+            const formattedValue = value.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+            phoneInput.value = formattedValue;
         });
 
         form.addEventListener('submit', async (event) => {
-            event.preventDefault(); 
-            // ... (이하 기존 form 제출 스크립트는 동일)
-            const visitorData = {
-                name: document.getElementById('name').value,
-                number: numberInput.value,
-                gender: document.getElementById('gender').value,
-                age = document.getElementById('age').value;
-                region: document.getElementById('region').value
-            };
+            event.preventDefault();
 
-            resultDiv.textContent = '등록 중...';
+            const name = document.getElementById('name').value;
+            const number = document.getElementById('number').value;
+            const gender = document.getElementById('gender').value;
+            const age = document.getElementById('age').value;
+            const region = document.getElementById('region').value;
+
+            // 모든 항목 입력 검사
+            if (!name || !number || !gender || !age || !region) {
+                messageDiv.textContent = '모든 항목을 입력해주세요.';
+                return;
+            }
+
+            // 나이 범위 유효성 검사
+            const ageNumber = parseInt(age, 10);
+            if (ageNumber < 8 || ageNumber > 24) {
+                messageDiv.textContent = '나이는 8세부터 24세까지만 등록 가능합니다.';
+                return;
+            }
 
             try {
+                messageDiv.textContent = '등록 중...';
                 const response = await fetch(`${API_URL}/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(visitorData)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, number, gender, age, region })
                 });
-                
-                if (!response.ok) throw new Error('서버 응답에 문제가 발생했습니다.');
 
-                const registeredVisitor = await response.json();
-                resultDiv.textContent = `✅ 등록 완료! [${registeredVisitor.id}] ${registeredVisitor.name}님 환영합니다.`;
-                form.reset();
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = '🎉 등록이 완료되었습니다!';
+                    form.reset();
+                } else {
+                    throw new Error(result.message || '등록에 실패했습니다.');
+                }
+
             } catch (error) {
-                resultDiv.textContent = `❌ 등록 실패: ${error.message}`;
+                messageDiv.textContent = '오류: ' + error.message;
             }
         });
     </script>
