@@ -16,6 +16,7 @@
         .actions button { padding: 5px 10px; margin-right: 5px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; }
         .btn-edit { background-color: #ffc107; }
         .btn-delete { background-color: #dc3545; color: white; }
+        .btn-save { background-color: #28a745; color: white; }
         .charts-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -30,7 +31,7 @@
     </style>
 </head>
 <body>
-    <a href="/index.html"> &larr; 등록 페이지로 돌아가기</a>
+    <a href="/index.html" style="margin-bottom: 1rem; display: inline-block;"> &larr; 등록 페이지로 돌아가기</a>
     <h1>📝 콤마 관리자 페이지: 등록자 명단</h1>
     
     <div class="charts-container">
@@ -39,8 +40,12 @@
             <canvas id="genderChart"></canvas>
         </div>
         <div class="chart-item">
-            <h2>연령대별 분포 (세분화)</h2>
+            <h2>연령대별 분포</h2>
             <canvas id="ageChart"></canvas>
+        </div>
+        <div class="chart-item">
+            <h2>분기별 등록 현황</h2>
+            <canvas id="quarterChart"></canvas>
         </div>
         <div class="chart-item">
             <h2>월별 등록 현황</h2>
@@ -63,7 +68,7 @@
             </tr>
         </thead>
         <tbody id="visitorList">
-            </tbody>
+        </tbody>
     </table>
 
 <script>
@@ -71,8 +76,6 @@
     const visitorList = document.getElementById('visitorList');
 
     window.onload = async () => {
-        // ... (이전과 동일) ...
-        // 단, 차트 함수 이름이 createAgeChartByNumber로 변경됩니다.
         try {
             const response = await fetch(`${API_URL}/visitors`);
             if (!response.ok) throw new Error('데이터 로딩 실패');
@@ -80,18 +83,23 @@
             
             renderVisitorTable(visitors);
             createGenderChart(visitors);
-            createAgeChartByNumber(visitors); // <-- 이름 변경!
+            createAgeChartByNumber(visitors);
+            createQuarterChart(visitors);
             createMonthChart(visitors);
             createDayChart(visitors);
             createWeekdayChart(visitors);
-
-        } catch (error) { /* ... */ }
+        } catch (error) {
+            console.error('페이지 로딩 중 오류:', error);
+            visitorList.innerHTML = `<tr><td colspan="7" style="color:red; text-align:center;">${error.message}</td></tr>`;
+        }
     };
 
-    // 테이블 렌더링 함수 (age_group -> age)
     function renderVisitorTable(visitors) {
         visitorList.innerHTML = ''; 
-        if (visitors.length === 0) { /* ... */ return; }
+        if (visitors.length === 0) {
+            visitorList.innerHTML = '<tr><td colspan="7" style="text-align:center;">등록된 방문객이 없습니다.</td></tr>';
+            return;
+        }
         visitors.forEach(visitor => {
             const row = document.createElement('tr');
             row.dataset.id = visitor._id; 
@@ -108,12 +116,12 @@
         });
     }
     
-    // 수정 함수 (age_group -> age)
     function editVisitor(id) {
         const row = document.querySelector(`tr[data-id="${id}"]`);
         const cells = row.querySelectorAll('td');
         const name = cells[0].textContent;
         const number = cells[1].textContent;
+        const gender = cells[2].textContent;
         const age = cells[3].textContent;
         const region = cells[4].textContent;
 
@@ -122,8 +130,8 @@
             <td><input type="text" value="${number}" style="width: 90%;"></td>
             <td>
                 <select style="width: 95%;">
-                    <option value="남성" ${cells[2].textContent === '남성' ? 'selected' : ''}>남성</option>
-                    <option value="여성" ${cells[2].textContent === '여성' ? 'selected' : ''}>여성</option>
+                    <option value="남성" ${gender === '남성' ? 'selected' : ''}>남성</option>
+                    <option value="여성" ${gender === '여성' ? 'selected' : ''}>여성</option>
                 </select>
             </td>
             <td><input type="number" value="${age}" style="width: 90%;"></td>
@@ -135,19 +143,51 @@
         `;
     }
 
-    // 저장 함수 (age_group -> age)
     async function saveVisitor(id) {
         const row = document.querySelector(`tr[data-id="${id}"]`);
         const inputs = row.querySelectorAll('input, select');
         const updatedData = {
-            name: inputs[0].value, number: inputs[1].value,
-            gender: inputs[2].value, age: inputs[3].value,
+            name: inputs[0].value,
+            number: inputs[1].value,
+            gender: inputs[2].value,
+            age: inputs[3].value,
             region: inputs[4].value
         };
-        // ... fetch 로직은 이전과 동일 ...
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedData)
+            });
+            if (response.ok) {
+                const savedVisitor = await response.json();
+                alert('성공적으로 수정되었습니다.');
+                revertRowToText(id, savedVisitor);
+            } else {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '수정에 실패했습니다.');
+            }
+        } catch (error) {
+            alert('오류: ' + error.message);
+        }
+    }
+    
+    async function deleteVisitor(id) {
+        if (!confirm('정말로 이 방문객 정보를 삭제하시겠습니까?')) return;
+        try {
+            const response = await fetch(`${API_URL}/visitors/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                alert('성공적으로 삭제되었습니다.');
+                document.querySelector(`tr[data-id="${id}"]`).remove();
+            } else {
+                const errorResult = await response.json();
+                throw new Error(errorResult.message || '삭제에 실패했습니다.');
+            }
+        } catch (error) {
+            alert('오류: ' + error.message);
+        }
     }
 
-    // 되돌리기 함수 (age_group -> age)
     function revertRowToText(id, visitor) {
         const row = document.querySelector(`tr[data-id="${id}"]`);
         const registeredDate = new Date(visitor.registeredAt).toLocaleString('ko-KR');
@@ -160,145 +200,106 @@
             </td>
         `;
     }
+    
+    function createGenderChart(visitors) {
+        const ctx = document.getElementById('genderChart').getContext('2d');
+        const counts = visitors.reduce((acc, v) => { acc[v.gender] = (acc[v.gender] || 0) + 1; return acc; }, {});
+        new Chart(ctx, { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56'] }] } });
+    }
 
-    // (수정) 연령대별 차트 -> 나이 기반 차트
     function createAgeChartByNumber(visitors) {
         const ctx = document.getElementById('ageChart').getContext('2d');
-        // 차트 라벨과 데이터 저장 객체 정의
         const ageGroups = ['8-13(초등)', '14-16(중등)', '17-19(고등)', '20-24(후기)', '기타'];
-        const ageCounts = {
-            '8-13(초등)': 0,
-            '14-16(중등)': 0,
-            '17-19(고등)': 0,
-            '20-24(후기)': 0,
-            '기타': 0
-        };
-
-        // 방문객 데이터를 순회하며 나이 그룹별로 카운트
+        const ageCounts = { '8-13(초등)': 0, '14-16(중등)': 0, '17-19(고등)': 0, '20-24(후기)': 0, '기타': 0 };
         visitors.forEach(v => {
             const age = v.age;
-            if (age >= 8 && age <= 13) {
-                ageCounts['8-13(초등)']++;
-            } else if (age >= 14 && age <= 16) {
-                ageCounts['14-16(중등)']++;
-            } else if (age >= 17 && age <= 19) {
-                ageCounts['17-19(고등)']++;
-            } else if (age >= 20 && age <= 24) {
-                ageCounts['20-24(후기)']++;
-            } else {
-                ageCounts['기타']++; // 어느 그룹에도 속하지 않으면 '기타'로 분류
-            }
+            if (age >= 8 && age <= 13) ageCounts['8-13(초등)']++;
+            else if (age >= 14 && age <= 16) ageCounts['14-16(중등)']++;
+            else if (age >= 17 && age <= 19) ageCounts['17-19(고등)']++;
+            else if (age >= 20 && age <= 24) ageCounts['20-24(후기)']++;
+            else ageCounts['기타']++;
+        });
+        new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ageGroups, datasets: [{ label: '방문객 수', data: ageGroups.map(g => ageCounts[g]), backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'] }] },
+            options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+        });
+    }
+    
+    function createQuarterChart(visitors) {
+        const ctx = document.getElementById('quarterChart').getContext('2d');
+        const quarters = ['1분기 (1-3월)', '2분기 (4-6월)', '3분기 (7-9월)', '4분기 (10-12월)'];
+        const quarterCounts = Array(4).fill(0);
+
+        visitors.forEach(v => {
+            const month = new Date(v.registeredAt).getMonth(); // 0: 1월, 11: 12월
+            const quarterIndex = Math.floor(month / 3);
+            quarterCounts[quarterIndex]++;
         });
 
-        // 차트 생성
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ageGroups,
+                labels: quarters,
                 datasets: [{
-                    label: '방문객 수',
-                    data: ageGroups.map(group => ageCounts[group]), // 각 그룹의 카운트 값을 데이터로 사용
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'
-                    ],
+                    label: '등록자 수',
+                    data: quarterCounts,
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0']
                 }]
             },
             options: {
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: { // y축 눈금이 정수로만 표시되도록 설정
-                            stepSize: 1
-                        }
+                        ticks: { stepSize: 1 }
                     }
                 }
             }
         });
     }
 
-        new Chart(ctx, { type: 'bar', /* ... 차트 설정은 이전과 유사 ... */ });
+    function createMonthChart(visitors) {
+        const ctx = document.getElementById('monthChart').getContext('2d');
+        const monthCounts = Array(12).fill(0);
+        visitors.forEach(v => { monthCounts[new Date(v.registeredAt).getMonth()]++; });
+        new Chart(ctx, { type: 'line', data: { labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], datasets: [{ label: '등록자 수', data: monthCounts, borderColor: '#FF9F40', tension: 0.1 }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    }
     
-        function createMonthChart(visitors) {
-            const ctx = document.getElementById('monthChart').getContext('2d');
-            const monthCounts = Array(12).fill(0);
-            visitors.forEach(v => { monthCounts[new Date(v.registeredAt).getMonth()]++; });
-            new Chart(ctx, { type: 'line', data: { labels: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'], datasets: [{ label: '등록자 수', data: monthCounts, borderColor: '#FF9F40', tension: 0.1 }] }, options: { scales: { y: { beginAtZero: true } } } });
-        }
-        
-        function createDayChart(visitors) {
-            const ctx = document.getElementById('dayChart').getContext('2d');
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
-            const dayCounts = Array(7).fill(0);
-            visitors.forEach(v => { dayCounts[new Date(v.registeredAt).getDay()]++; });
-            new Chart(ctx, { type: 'bar', data: { labels: days, datasets: [{ label: '등록자 수', data: dayCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] }, options: { scales: { y: { beginAtZero: true } } } });
-        }
+    function createDayChart(visitors) {
+        const ctx = document.getElementById('dayChart').getContext('2d');
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const dayCounts = Array(7).fill(0);
+        visitors.forEach(v => { dayCounts[new Date(v.registeredAt).getDay()]++; });
+        new Chart(ctx, { type: 'bar', data: { labels: days, datasets: [{ label: '등록자 수', data: dayCounts, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'] }] }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+    }
 
-           // (수정) 주중/주말 등록 현황 (남녀 구분 누적 막대그래프)
     function createWeekdayChart(visitors) {
-        const ctx = document.getElementById('weekdayChart').getContext('d');
-
-        // 데이터를 저장할 구조를 더 복잡하게 변경합니다.
-        const dayCounts = {
-            '주중 (월-금)': { '남성': 0, '여성': 0 },
-            '주말 (토-일)': { '남성': 0, '여성': 0 }
-        };
-
-        // 방문객 데이터를 순회하며 주중/주말 및 성별에 따라 카운트
+        const ctx = document.getElementById('weekdayChart').getContext('2d');
+        const dayCounts = { '주중 (월-금)': { '남성': 0, '여성': 0 }, '주말 (토-일)': { '남성': 0, '여성': 0 } };
         visitors.forEach(visitor => {
-            const dayIndex = new Date(visitor.registeredAt).getDay(); // 0=일, 6=토
-            const gender = visitor.gender === '남성' ? '남성' : '여성'; // 성별을 남/여로 통일
-
+            const dayIndex = new Date(visitor.registeredAt).getDay();
+            const gender = visitor.gender === '남성' ? '남성' : '여성';
             if (dayIndex === 0 || dayIndex === 6) {
-                // 주말 카운트
                 dayCounts['주말 (토-일)'][gender]++;
             } else {
-                // 주중 카운트
                 dayCounts['주중 (월-금)'][gender]++;
             }
         });
-
         new Chart(ctx, {
-            type: 'bar', // 차트 종류를 'doughnut'에서 'bar'로 변경
+            type: 'bar',
             data: {
                 labels: ['주중 (월-금)', '주말 (토-일)'],
-                // 데이터셋을 성별에 따라 두 개로 나눔
                 datasets: [
-                    {
-                        label: '남성',
-                        data: [
-                            dayCounts['주중 (월-금)']['남성'],
-                            dayCounts['주말 (토-일)']['남성']
-                        ],
-                        backgroundColor: '#36A2EB', // 남성: 파란색
-                    },
-                    {
-                        label: '여성',
-                        data: [
-                            dayCounts['주중 (월-금)']['여성'],
-                            dayCounts['주말 (토-일)']['여성']
-                        ],
-                        backgroundColor: '#FF6384', // 여성: 분홍색
-                    }
+                    { label: '남성', data: [dayCounts['주중 (월-금)']['남성'], dayCounts['주말 (토-일)']['남성']], backgroundColor: '#36A2EB' },
+                    { label: '여성', data: [dayCounts['주중 (월-금)']['여성'], dayCounts['주말 (토-일)']['여성']], backgroundColor: '#FF6384' }
                 ]
             },
             options: {
                 responsive: true,
-                // x축과 y축을 쌓도록(stacked) 설정
-                scales: {
-                    x: {
-                        stacked: true,
-                    },
-                    y: {
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: {
-                            stepSize: 1 // y축 눈금을 정수로만 표시
-                        }
-                    }
-                }
+                scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } }
             }
         });
     }
-    </script>
+</script>
 </body>
 </html>
