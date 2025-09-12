@@ -99,6 +99,10 @@
                 <label for="region">지역</label>
                 <input type="text" id="region" placeholder="거주 지역 (예: 마포구)" required>
             </div>
+            <div class="form-group">
+                <label for="suggestion">콤마에서 생겼으면 하는 놀거리는?</label>
+                <textarea id="suggestion" rows="3" placeholder="자유롭게 적어주세요!"></textarea>
+            </div>
             <button type="submit">등록하기</button>
         </form>
         <div id="message"></div>
@@ -126,6 +130,8 @@
             const gender = document.getElementById('gender').value;
             const age = document.getElementById('age').value;
             const region = document.getElementById('region').value;
+            const suggestion = document.getElementById('suggestion').value;
+
 
             // 모든 항목 입력 검사
             if (!name || !number || !gender || !age || !region) {
@@ -145,7 +151,7 @@
                 const response = await fetch(`${API_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, number, gender, age, region })
+                    body: JSON.stringify({ name, number, gender, age, region, suggestion })
                 });
 
                 const result = await response.json();

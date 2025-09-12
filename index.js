@@ -31,7 +31,7 @@ const User = mongoose.model('User', userSchema);
 
 const visitorSchema = new mongoose.Schema({
     name: String, number: String, gender: String,
-    age: Number, region: String,
+    age: Number, region: String, suggestion: String,
     registeredAt: { type: Date, default: Date.now }
 });
 const Visitor = mongoose.model('Visitor', visitorSchema);
@@ -94,8 +94,8 @@ app.get('/visitors', checkAuth, async (req, res) => {
 
 app.post('/register', async (req, res) => {
     try {
-        const { name, number, gender, age, region } = req.body;
-        const newVisitor = new Visitor({ name, number, gender, age, region });
+        const { name, number, gender, age, region, suggestion } = req.body;
+        const newVisitor = new Visitor({ name, number, gender, age, region, suggestion });
         const savedVisitor = await newVisitor.save();
         res.status(201).json(savedVisitor);
     } catch (error) {
